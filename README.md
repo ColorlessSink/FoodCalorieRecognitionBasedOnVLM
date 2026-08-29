@@ -1,6 +1,6 @@
 # 基于 VLM 的食物卡路里识别智能体
 
-> 本仓库含两部分内容：**大作业**（基于 VLM 的食物卡路里识别智能体，50 类 + 分量 + 卡路里 + 多轮对话智能体）与**小作业**（20 类中餐 Chinese-CLIP 分类，作为大作业识别模块的前身与复用基础）。下方先介绍大作业，末尾"附：小作业"给出 20 类实验的快速说明。
+> 本仓库为 EagleLab 大作业：基于 VLM 的食物卡路里识别智能体（50 类 + 分量 + 卡路里 + 多轮对话智能体）。识别模块的前身是 20 类中餐 Chinese-CLIP 分类实验（小作业，已归档移除），本仓库只保留大作业完整交付。
 
 ## 大作业概述
 
@@ -156,48 +156,6 @@ python demo/web_demo.py --port 7863 # 指定端口（多用户共用机器时）
 
 ---
 
-## 附：小作业（20 类中餐分类，大作业识别模块前身）
-
-基于视觉语言模型的中餐食物零样本 / 少样本 / LoRA 微调分类实验。从 ChineseFoodNet 中抽取 20 类中餐菜品，用 Chinese-CLIP 实现零样本分类基线，并通过 Few-shot prototype、LoRA 微调、OpenCV 数据增强三种方式提升分类性能，最后对结果进行系统分析。
-
-### 小作业结果汇总
-
-test 集 400 张、20 类的最终结果：
-
-| 方法 | 改权重 | Top-1 | Top-5 | 对比零样本基线 |
-|---|---|---|---|---|
-| 零样本基线（`一张{c}的照片`） | 否 | 78.75% | 92.75% | — |
-| Few-shot 10-shot prototype | 否 | 90.50% | 98.50% | +11.75 / +5.75 |
-| **LoRA 微调 (r=8)** | **是 (0.31%)** | **92.50%** | **99.25%** | **+13.75 / +6.50** |
-| 数据增强版 LoRA | 是 | 91.50% | 99.25% | −1.0 / 0 |
-
-### 小作业脚本
-
-```bash
-python build_dataset.py     # 构建 20 类数据集 → dataset_20cls/
-python zero_shot.py         # 零样本 + 6 种模板对比
-python few_shot.py          # 10-shot prototype
-python lora_train.py        # LoRA 训练 → results/lora_adapter/
-python lora_eval.py         # LoRA 评估
-python data_augment_train.py && python data_augment_eval.py  # 增强版
-python scripts/plot_confusion.py    # 混淆矩阵
-```
-
-### 小作业 20 类菜品
-
-| idx | 菜名 | idx | 菜名 |
-|---|---|---|---|
-| 0 | 麻婆豆腐 | 10 | 红烧肉 |
-| 1 | 宫保鸡丁 | 11 | 糖醋排骨 |
-| 2 | 回锅肉 | 12 | 梅菜扣肉 |
-| 3 | 鱼香肉丝 | 13 | 京酱肉丝 |
-| 4 | 水煮鱼 | 14 | 饺子 |
-| 5 | 鱼香茄子 | 15 | 包子 |
-| 6 | 酸辣土豆丝 | 16 | 扬州炒饭 |
-| 7 | 西红柿炒蛋 | 17 | 炸酱面 |
-| 8 | 地三鲜 | 18 | 葱爆羊肉 |
-| 9 | 蚝油生菜 | 19 | 香辣小龙虾 |
-
 ## 关键实现说明
 
 - **Chinese-CLIP 特征坑**：`get_text_features`/`get_image_features` 返回的不是最终对齐嵌入，要手动取 `last_hidden_state[:,0,:]`（CLS）再乘 `text_projection`/`visual_projection`，否则相似度全乱。
@@ -207,5 +165,5 @@ python scripts/plot_confusion.py    # 混淆矩阵
 
 ## 备注
 
-- `ChineseFood Net 3/`、`dataset_20cls/`、`dataset_50cls/`、`.claude/` 已在 `.gitignore` 中忽略，不入库。
+- `ChineseFood Net 3/`（原始数据）、`dataset_50cls/`（构建产物，2400+ 张图）、`.claude/` 已在 `.gitignore` 中忽略，不入库；**`results/`（含 figures）会入库**，它们是报告数字的凭证。
 - 各脚本中的 `_LOCAL_SNAP` 是本机 HuggingFace 缓存快照路径，换机器运行时需改为自己的路径或留空使用在线模型名。

@@ -1,7 +1,6 @@
 ChineseFood Net 3
+dataset_50cls/
+dataset_20cls/
 __pycache__
 *.pyc
 .claude
-dataset_20cls
-dataset_50cls
-results/_mixed_crops*.pkl

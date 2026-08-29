@@ -25,10 +25,16 @@ models/portion_estimator.py — 分量估计模块（模块2）
   方法A 被设计成回归到 μ（面积比只做相对调制），方法B 让 LLM 在几何与先验间折中。
 '''
 import os
+import sys
 import json
 import math
 import numpy as np
 import pandas as pd
+
+# 以 `python models/portion_estimator.py` 方式启动时，Python 只把 models/ 加进
+# sys.path，找不到根目录的包。补进项目根目录（models 的上一级），使直接
+# 运行与 `python -m models.portion_estimator` 都能工作。
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.common import ROOT, load_config
 from tools.utils import (food_mask_by_saliency, area_ratio, largest_contour_bbox,

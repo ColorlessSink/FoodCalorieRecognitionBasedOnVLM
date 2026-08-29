@@ -13,10 +13,15 @@ models/llm_client.py — glm-5.2 LLM 调用客户端（OpenAI 兼容）
 只做纯文本任务（实测代理视觉不可用）：CoT 分量推理、多轮对话。
 '''
 import os
+import sys
 import json
 import requests
 
-from common import load_config
+# 以 `python models/llm_client.py` 方式启动时，sys.path 只有 models/，
+# `from common import ...` 的老写法找不到包；统一走项目根的绝对导入。
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from models.common import load_config
 
 
 class LLMClient:

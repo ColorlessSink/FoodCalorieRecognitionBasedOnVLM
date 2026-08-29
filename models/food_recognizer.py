@@ -10,22 +10,22 @@ models/food_recognizer.py — 食物识别模块（模块1）
     mode="lora"      : 加载 LoRA adapter 微调后的权重 → 相似度
   对外只暴露 recognize(paths)->(labels, confs, topk)，下游分量/营养/智能体模块无需关心后端。
 
-为什么把 ZeroShot 的逻辑搬过来而不是 import 小作业的：
-  小作业的 ZeroShot 类硬编码了 dataset_20cls、device="cuda"、_LOCAL_SNAP 等，
-  且它的 gather_pic 走目录扫描而非从 split.csv 读。大作业用 dataset_50cls 和
-  split.csv 清单，且要在 20/50 类间切换、要被智能体当作库调用，所以重写一个
-  无副作用的版本，保留 CLS+projection 的关键兼容逻辑（小作业踩过的坑）。
-
 关键点（与 memory 一致）：
   get_text_features / get_image_features 在新版 transformers 里可能返回
   "非最终隐藏态"（只有 last_hidden_state）。必须手动取 [:,0,:] 再过
   text_projection / visual_projection，才能得到 512 维对齐嵌入。
 '''
 import os
+import sys
 import time
 import torch
 from PIL import Image
 import pandas as pd
+
+# 以 `python models/food_recognizer.py` 方式启动时，Python 只把 models/ 加进
+# sys.path，找不到根目录的包。补进项目根目录（models 的上一级），使直接
+# 运行与 `python -m models.food_recognizer` 都能工作。
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.common import load_config, load_clip, load_classes, device_of
 
@@ -34,7 +34,7 @@ class FoodRecognizer:
     def __init__(self, cfg=None, mode="zero_shot", data_dir=None, device=None):
         """
         mode  : "zero_shot" | "few_shot" | "lora"
-        data_dir : "dataset_50cls" / "dataset_20cls"；None 时取 cfg.project.data_dir
+        data_dir : 数据集目录名（如 "dataset_50cls"）；None 时取 cfg.project.data_dir
         """
         self.cfg = cfg or load_config()
         self.mode = mode
@@ -63,15 +63,12 @@ class FoodRecognizer:
     # ---------------- LoRA ----------------
     def _load_lora_adapter(self):
         import peft as pf
-        # 50 类用 50 的 adapter，20 类用 20 的
-        is_50 = "50" in os.path.basename(self.data_dir)
-        key = "adapter_dir_50" if is_50 else "adapter_dir_20"
-        adapter_dir = self.cfg["recognition"]["lora"].get(key) or self.cfg["recognition"]["lora"]["adapter_dir_20"]
+        adapter_dir = self.cfg["recognition"]["lora"]["adapter_dir_50"]
         adapter_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), adapter_dir) \
             if not os.path.isabs(adapter_dir) else adapter_dir
         if not os.path.isdir(adapter_dir):
             raise FileNotFoundError(
-                f"LoRA adapter 不存在：{adapter_dir}。请先训练（见 lora_train.py）。"
+                f"LoRA adapter 不存在：{adapter_dir}。请先训练（experiments/train_lora_50.py）。"
             )
         self.model = pf.PeftModel.from_pretrained(self.model, adapter_dir)
         self.model.eval()

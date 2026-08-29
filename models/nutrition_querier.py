@@ -14,8 +14,14 @@ models/nutrition_querier.py — 营养查询与卡路里计算模块（模块3�
   - 多食物：compute_meal(list_of_(idx,weight)) 汇总一餐。
 '''
 import os
+import sys
 import json
 import pandas as pd
+
+# 以 `python models/nutrition_querier.py` 方式启动时，Python 只把 models/ 加进
+# sys.path，找不到根目录的包。补进项目根目录（models 的上一级），使直接
+# 运行与 `python -m models.nutrition_querier` 都能工作。
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.common import ROOT, load_config
 

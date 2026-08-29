@@ -11,10 +11,8 @@
 project:
   name: "calorie-agent"
   # 数据集版本：50 类（大作业要求 ≥50 类，中餐 ≥20 类）
-  # 前 20 类与小作业完全一致，便于复用其 LoRA adapter 做"20类 vs 50类"对照实验。
   n_classes: 50
   data_dir: "dataset_50cls"        # 大作业主数据集
-  data_dir_20: "dataset_20cls"     # 小作业数据集（仅用于对照实验）
 
 model:
   # Chinese-CLIP：本地视觉主力（识别 + 分割辅助）
@@ -53,11 +51,9 @@ recognition:
     - "一张盘子里装着{c}的照片"
   few_shot:
     k_shot: 10
-    seed: 67                          # 与小作业一致，便于对照
+    seed: 67
   lora:
-    adapter_dir_20: "results/lora_adapter"        # 小作业训练好的 20 类 adapter
-    adapter_dir_20_aug: "results/lora_adapter_aug"
-    adapter_dir_50: "results/lora_adapter_50"     # 大作业 50 类 adapter（待训练）
+    adapter_dir_50: "results/lora_adapter_50"     # 大作业 50 类 adapter
 
 # 分量估计模块（模块2）——两种方法对比
 portion:
