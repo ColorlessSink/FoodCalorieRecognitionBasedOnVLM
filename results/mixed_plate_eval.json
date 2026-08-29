@@ -1,0 +1,55 @@
+{
+  "detector": {
+    "region_count_exact": "119/120",
+    "component_recall_pct": 100.0
+  },
+  "recognition_mode": "lora",
+  "buckets": {
+    "2comp_e2e": {
+      "n_plates": 72,
+      "plate_kcal_mae": 117.8,
+      "plate_kcal_median_ae": 73.3,
+      "plate_weight_mae_g": 48.8,
+      "le100kcal_pct": 56.9,
+      "component_top1_pct": 80.6,
+      "component_top5_pct": 96.5
+    },
+    "2comp_oracle": {
+      "n_plates": 72,
+      "plate_kcal_mae": 56.3,
+      "plate_kcal_median_ae": 39.3,
+      "plate_weight_mae_g": 30.6,
+      "le100kcal_pct": 83.3,
+      "component_top1_pct": 100.0
+    },
+    "3comp_e2e": {
+      "n_plates": 48,
+      "plate_kcal_mae": 125.6,
+      "plate_kcal_median_ae": 89.0,
+      "plate_weight_mae_g": 46.6,
+      "le100kcal_pct": 54.2,
+      "component_top1_pct": 84.0,
+      "component_top5_pct": 97.9
+    },
+    "3comp_oracle": {
+      "n_plates": 48,
+      "plate_kcal_mae": 75.4,
+      "plate_kcal_median_ae": 60.6,
+      "plate_weight_mae_g": 36.8,
+      "le100kcal_pct": 68.8,
+      "component_top1_pct": 100.0
+    }
+  },
+  "overall_oracle": {
+    "n_plates": 120,
+    "plate_kcal_mae": 63.9,
+    "plate_kcal_median_ae": 44.8,
+    "le100kcal_pct": 77.5
+  },
+  "overall_e2e": {
+    "n_plates": 120,
+    "plate_kcal_mae": 120.9,
+    "plate_kcal_median_ae": 81.1,
+    "le100kcal_pct": 55.8
+  }
+}

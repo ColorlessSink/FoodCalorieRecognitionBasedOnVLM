@@ -1,0 +1,51 @@
+﻿idx,zh,en,kcal_per100g,protein_g,fat_g,carbs_g,density
+0,麻婆豆腐,Mapo Tofu,150,12,9,6,0.95
+1,宫保鸡丁,Kung Pao Chicken,200,15,13,8,1.0
+2,回锅肉,Double Cooked Pork,250,14,20,5,1.0
+3,鱼香肉丝,Yu-Shiang Shredded Pork,180,12,12,9,1.0
+4,水煮鱼,Fish in Hot Chili Oil,180,16,11,5,1.0
+5,鱼香茄子,Yu-Shiang Eggplant,160,3,12,12,0.8
+6,酸辣土豆丝,Hot and Sour Potato,110,2,6,13,0.9
+7,西红柿炒蛋,Tomato and Egg,120,6,8,6,0.95
+8,地三鲜,Di San Xian,130,3,8,12,0.85
+9,蚝油生菜,Oyster Sauce Lettuce,60,2,3,6,0.6
+10,红烧肉,Braised Pork,300,14,26,6,1.05
+11,糖醋排骨,Sweet and Sour Spareribs,280,16,20,10,1.05
+12,梅菜扣肉,Pork with Salted Vegetable,320,12,28,8,1.0
+13,京酱肉丝,Sweet Bean Pork,220,16,14,8,1.0
+14,饺子,Dumplings,250,9,12,28,1.05
+15,包子,Steamed Stuffed Bun,230,9,8,30,0.95
+16,扬州炒饭,Yangzhou Fried Rice,180,6,7,24,1.0
+17,炸酱面,Zhajiang Noodles,180,7,6,25,1.0
+18,葱爆羊肉,Scallion Lamb,220,16,15,6,1.0
+19,香辣小龙虾,Spicy Crayfish,110,18,3,2,1.0
+20,家常豆腐,Home style Tofu,130,9,8,6,0.95
+21,薯条,French Fries,300,4,15,40,0.7
+22,蚝油西兰花,Broccoli with Oyster Sauce,70,3,3,7,0.65
+23,炸藕盒,Deep Fried Lotus Root,230,6,15,22,0.85
+24,凉拌西红柿,Tomato Salad,40,1,0,9,0.95
+25,花生,Peanut,570,25,49,16,0.85
+26,炒花菜,Fried Cauliflower,80,3,4,8,0.7
+27,蒸蛋羹,Steamed Egg Custard,90,8,6,3,1.0
+28,可乐鸡翅,Cola Chicken Wings,200,16,12,8,1.05
+29,辣子鸡,Spicy Chicken,250,18,18,6,1.0
+30,爆炒腰花,Scalloped Kidneys,160,16,9,4,1.05
+31,红烧牛肉,Braised Beef,200,22,10,5,1.05
+32,酸菜鱼,Fish with Pickled Cabbage,120,14,5,5,1.0
+33,糖醋鱼,Sweet and Sour Fish,200,16,10,12,1.0
+34,剁椒鱼头,Fish Head with Chili,130,16,6,4,1.0
+35,麻辣虾,Spicy Shrimp,130,20,4,3,1.0
+36,螃蟹,Crab,110,18,3,2,1.0
+37,小笼包,Steamed Stuffed Bun (Small),260,10,12,30,0.95
+38,肉夹馍,Chinese Hamburger,280,10,14,30,0.95
+39,酸辣粉,Hot and Sour Rice Noodles,150,4,6,22,1.0
+40,凉面,Cold Noodles,170,5,5,28,1.0
+41,炒面,Fried Noodles,180,6,7,25,1.0
+42,煎饺,Fried Dumplings,260,9,13,28,0.95
+43,白粥,Rice Porridge,50,1,0,11,1.0
+44,米饭,Rice,130,3,0,28,1.0
+45,炒菠菜,Sauteed Spinach,70,3,4,5,0.6
+46,蛋挞,Egg Tart,320,6,20,35,0.8
+47,面包,Bread,280,8,6,50,0.5
+48,双皮奶,Double Skin Milk,130,5,6,14,1.0
+49,冰淇淋,Ice Cream,180,4,8,22,0.9

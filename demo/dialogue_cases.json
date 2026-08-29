@@ -1,0 +1,106 @@
+[
+  {
+    "name": "基础识别+个性化",
+    "turns": [
+      {"image": "dataset_50cls/test/00_麻婆豆腐/00_003720.jpg", "text": "帮我看看这盘菜"},
+      {"text": "我在减脂，这份能吃吗"}
+    ]
+  },
+  {
+    "name": "共指-再来一份",
+    "turns": [
+      {"image": "dataset_50cls/test/01_宫保鸡丁/01_019283.jpg", "text": "这是什么"},
+      {"text": "再来一份"},
+      {"text": "今天总共吃了多少"}
+    ]
+  },
+  {
+    "name": "纠正菜名",
+    "turns": [
+      {"image": "dataset_50cls/test/02_回锅肉/02_013602.jpg", "text": "看看这个"},
+      {"text": "不是，其实是鱼香肉丝"}
+    ]
+  },
+  {
+    "name": "多菜累积+总量",
+    "turns": [
+      {"image": "dataset_50cls/test/03_鱼香肉丝/03_014216.jpg", "text": "吃了一个"},
+      {"image": "dataset_50cls/test/16_扬州炒饭/16_008233.jpg", "text": "还有这个"},
+      {"text": "这餐一共多少卡"}
+    ]
+  },
+  {
+    "name": "增肌目标",
+    "turns": [
+      {"text": "我在增肌"},
+      {"image": "dataset_50cls/test/10_红烧肉/10_019185.jpg", "text": "这份够吗"}
+    ]
+  },
+  {
+    "name": "控糖目标+主食",
+    "turns": [
+      {"text": "我要控糖"},
+      {"image": "dataset_50cls/test/17_炸酱面/17_019831.jpg", "text": "这个能吃吗"}
+    ]
+  },
+  {
+    "name": "共指倍数-再来两份",
+    "turns": [
+      {"image": "dataset_50cls/test/04_水煮鱼/04_018889.jpg", "text": "看看"},
+      {"text": "再来两份"},
+      {"text": "总共多少"}
+    ]
+  },
+  {
+    "name": "门控-低置信反问",
+    "turns": [
+      {"image": "dataset_50cls/test/00_麻婆豆腐/00_003720.jpg", "text": "这是什么菜"}
+    ]
+  },
+  {
+    "name": "打招呼+引导",
+    "turns": [
+      {"text": "你好"},
+      {"text": "你能做什么"}
+    ]
+  },
+  {
+    "name": "无图追问+上下文",
+    "turns": [
+      {"image": "dataset_50cls/test/05_鱼香茄子/05_006609.jpg", "text": "这是什么"},
+      {"text": "它有多少蛋白质"},
+      {"text": "那脂肪呢"}
+    ]
+  },
+  {
+    "name": "一餐重置",
+    "turns": [
+      {"image": "dataset_50cls/test/06_酸辣土豆丝/06_015373.jpg", "text": "记录这个"},
+      {"text": "这餐总共多少"},
+      {"text": "新一餐"}
+    ]
+  },
+  {
+    "name": "混合餐盘-识别+盘级汇总",
+    "turns": [
+      {"image": "dataset_50cls/mixed/plate_0001.jpg", "text": "这盘菜一共多少热量"},
+      {"text": "总共多少"}
+    ]
+  },
+  {
+    "name": "混合餐盘-后接共指再来一份",
+    "turns": [
+      {"image": "dataset_50cls/mixed/plate_0004.jpg", "text": "看看这盘"},
+      {"text": "再来一份"},
+      {"text": "总共多少"}
+    ]
+  },
+  {
+    "name": "混合餐盘-多盘累积",
+    "turns": [
+      {"image": "dataset_50cls/mixed/plate_0001.jpg", "text": "第一盘"},
+      {"image": "dataset_50cls/mixed/plate_0002.jpg", "text": "第二盘"},
+      {"text": "今天总共吃了多少"}
+    ]
+  }
+]

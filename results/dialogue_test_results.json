@@ -1,0 +1,480 @@
+[
+  {
+    "name": "基础识别+个性化",
+    "turns": [
+      {
+        "text": "帮我看看这盘菜",
+        "image": "dataset_50cls/test/00_麻婆豆腐/00_003720.jpg",
+        "reply": "识别到：**麻婆豆腐**（置信度 88%）。\n估算分量约 212g，热量约 319 kcal，蛋白 26g / 脂肪 19g / 碳水 13g。",
+        "state": {
+          "last_food": "麻婆豆腐",
+          "meal_items": 1,
+          "meal_kcal": 318.8,
+          "goal": null,
+          "history_turns": 2
+        }
+      },
+      {
+        "text": "我在减脂，这份能吃吗",
+        "image": null,
+        "reply": "已记录你的目标：**减脂**。减脂期建议每餐热量控制在 400~550 kcal，蛋白优先、少油少糖。",
+        "state": {
+          "last_food": "麻婆豆腐",
+          "meal_items": 1,
+          "meal_kcal": 318.8,
+          "goal": "减脂",
+          "history_turns": 4
+        }
+      }
+    ]
+  },
+  {
+    "name": "共指-再来一份",
+    "turns": [
+      {
+        "text": "这是什么",
+        "image": "dataset_50cls/test/01_宫保鸡丁/01_019283.jpg",
+        "reply": "识别到：**宫保鸡丁**（置信度 99%）。\n估算分量约 211g，热量约 422 kcal，蛋白 32g / 脂肪 28g / 碳水 17g。",
+        "state": {
+          "last_food": "宫保鸡丁",
+          "meal_items": 1,
+          "meal_kcal": 422.4,
+          "goal": null,
+          "history_turns": 2
+        }
+      },
+      {
+        "text": "再来一份",
+        "image": null,
+        "reply": "好，再记一份 宫保鸡丁×1：211g，热量 422 kcal。",
+        "state": {
+          "last_food": "宫保鸡丁",
+          "meal_items": 2,
+          "meal_kcal": 844.8,
+          "goal": null,
+          "history_turns": 4
+        }
+      },
+      {
+        "text": "今天总共吃了多少",
+        "image": null,
+        "reply": "这餐目前记录：宫保鸡丁(211g)、宫保鸡丁(211g)。\n合计 845 kcal，蛋白 63g / 脂肪 55g / 碳水 34g。",
+        "state": {
+          "last_food": "宫保鸡丁",
+          "meal_items": 2,
+          "meal_kcal": 844.8,
+          "goal": null,
+          "history_turns": 6
+        }
+      }
+    ]
+  },
+  {
+    "name": "纠正菜名",
+    "turns": [
+      {
+        "text": "看看这个",
+        "image": "dataset_50cls/test/02_回锅肉/02_013602.jpg",
+        "reply": "识别到：**回锅肉**（置信度 63%）。\n估算分量约 211g，热量约 528 kcal，蛋白 30g / 脂肪 42g / 碳水 11g。",
+        "state": {
+          "last_food": "回锅肉",
+          "meal_items": 1,
+          "meal_kcal": 528.0,
+          "goal": null,
+          "history_turns": 2
+        }
+      },
+      {
+        "text": "不是，其实是鱼香肉丝",
+        "image": null,
+        "reply": "好的，记成 **鱼香肉丝**，211g，热量约 380 kcal。",
+        "state": {
+          "last_food": "鱼香肉丝",
+          "meal_items": 1,
+          "meal_kcal": 380.2,
+          "goal": null,
+          "history_turns": 4
+        }
+      }
+    ]
+  },
+  {
+    "name": "多菜累积+总量",
+    "turns": [
+      {
+        "text": "吃了一个",
+        "image": "dataset_50cls/test/03_鱼香肉丝/03_014216.jpg",
+        "reply": "识别到：**爆炒腰花**（置信度 49%）。\n估算分量约 226g，热量约 361 kcal，蛋白 36g / 脂肪 20g / 碳水 9g。",
+        "state": {
+          "last_food": "爆炒腰花",
+          "meal_items": 1,
+          "meal_kcal": 361.1,
+          "goal": null,
+          "history_turns": 2
+        }
+      },
+      {
+        "text": "还有这个",
+        "image": "dataset_50cls/test/16_扬州炒饭/16_008233.jpg",
+        "reply": "识别到：**扬州炒饭**（置信度 100%）。\n估算分量约 316g，热量约 569 kcal，蛋白 19g / 脂肪 22g / 碳水 76g。",
+        "state": {
+          "last_food": "扬州炒饭",
+          "meal_items": 2,
+          "meal_kcal": 930.4,
+          "goal": null,
+          "history_turns": 4
+        }
+      },
+      {
+        "text": "这餐一共多少卡",
+        "image": null,
+        "reply": "这餐目前记录：爆炒腰花(226g)、扬州炒饭(316g)。\n合计 930 kcal，蛋白 55g / 脂肪 42g / 碳水 85g。",
+        "state": {
+          "last_food": "扬州炒饭",
+          "meal_items": 2,
+          "meal_kcal": 930.4,
+          "goal": null,
+          "history_turns": 6
+        }
+      }
+    ]
+  },
+  {
+    "name": "增肌目标",
+    "turns": [
+      {
+        "text": "我在增肌",
+        "image": null,
+        "reply": "已记录你的目标：**增肌**。增肌期可适当提高碳水与蛋白，每餐 600~800 kcal，训练后补充。",
+        "state": {
+          "last_food": null,
+          "meal_items": 0,
+          "meal_kcal": 0,
+          "goal": "增肌",
+          "history_turns": 2
+        }
+      },
+      {
+        "text": "这份够吗",
+        "image": "dataset_50cls/test/10_红烧肉/10_019185.jpg",
+        "reply": "识别到：**红烧肉**（置信度 98%）。\n估算分量约 211g，热量约 634 kcal，蛋白 30g / 脂肪 55g / 碳水 13g。\n✅ 热量适合增肌期。",
+        "state": {
+          "last_food": "红烧肉",
+          "meal_items": 1,
+          "meal_kcal": 633.6,
+          "goal": "增肌",
+          "history_turns": 4
+        }
+      }
+    ]
+  },
+  {
+    "name": "控糖目标+主食",
+    "turns": [
+      {
+        "text": "我要控糖",
+        "image": null,
+        "reply": "已记录你的目标：**控糖**。控糖期减少精制碳水（米饭/面条/甜点），多叶菜与蛋白。",
+        "state": {
+          "last_food": null,
+          "meal_items": 0,
+          "meal_kcal": 0,
+          "goal": "控糖",
+          "history_turns": 2
+        }
+      },
+      {
+        "text": "这个能吃吗",
+        "image": "dataset_50cls/test/17_炸酱面/17_019831.jpg",
+        "reply": "识别到：**炸酱面**（置信度 100%）。\n估算分量约 288g，热量约 518 kcal，蛋白 20g / 脂肪 17g / 碳水 72g。\n控糖期重点关注碳水，尽量减少米饭/面条/甜点。",
+        "state": {
+          "last_food": "炸酱面",
+          "meal_items": 1,
+          "meal_kcal": 518.4,
+          "goal": "控糖",
+          "history_turns": 4
+        }
+      }
+    ]
+  },
+  {
+    "name": "共指倍数-再来两份",
+    "turns": [
+      {
+        "text": "看看",
+        "image": "dataset_50cls/test/04_水煮鱼/04_018889.jpg",
+        "reply": "识别到：**酸辣粉**（置信度 89%）。\n估算分量约 318g，热量约 477 kcal，蛋白 13g / 脂肪 19g / 碳水 70g。",
+        "state": {
+          "last_food": "酸辣粉",
+          "meal_items": 1,
+          "meal_kcal": 477.0,
+          "goal": null,
+          "history_turns": 2
+        }
+      },
+      {
+        "text": "再来两份",
+        "image": null,
+        "reply": "好，再记一份 酸辣粉×2：636g，热量 954 kcal。",
+        "state": {
+          "last_food": "酸辣粉",
+          "meal_items": 2,
+          "meal_kcal": 1431.0,
+          "goal": null,
+          "history_turns": 4
+        }
+      },
+      {
+        "text": "总共多少",
+        "image": null,
+        "reply": "这餐目前记录：酸辣粉(318g)、酸辣粉(636g)。\n合计 1431 kcal，蛋白 38g / 脂肪 57g / 碳水 210g。",
+        "state": {
+          "last_food": "酸辣粉",
+          "meal_items": 2,
+          "meal_kcal": 1431.0,
+          "goal": null,
+          "history_turns": 6
+        }
+      }
+    ]
+  },
+  {
+    "name": "门控-低置信反问",
+    "turns": [
+      {
+        "text": "这是什么菜",
+        "image": "dataset_50cls/test/00_麻婆豆腐/00_003720.jpg",
+        "reply": "识别到：**麻婆豆腐**（置信度 88%）。\n估算分量约 213g，热量约 319 kcal，蛋白 26g / 脂肪 19g / 碳水 13g。",
+        "state": {
+          "last_food": "麻婆豆腐",
+          "meal_items": 1,
+          "meal_kcal": 318.9,
+          "goal": null,
+          "history_turns": 2
+        }
+      }
+    ]
+  },
+  {
+    "name": "打招呼+引导",
+    "turns": [
+      {
+        "text": "你好",
+        "image": null,
+        "reply": "你好！我是卡路里识别助手。把菜品照片发给我，我会识别菜名、估算分量、计算热量和三大宏量。你可以告诉我你的目标（减脂/增肌/控糖/维持），我会给个性化建议。",
+        "state": {
+          "last_food": null,
+          "meal_items": 0,
+          "meal_kcal": 0,
+          "goal": null,
+          "history_turns": 2
+        }
+      },
+      {
+        "text": "你能做什么",
+        "image": null,
+        "reply": "把菜品照片发给我，我帮你认菜、估分量、算热量。",
+        "state": {
+          "last_food": null,
+          "meal_items": 0,
+          "meal_kcal": 0,
+          "goal": null,
+          "history_turns": 4
+        }
+      }
+    ]
+  },
+  {
+    "name": "无图追问+上下文",
+    "turns": [
+      {
+        "text": "这是什么",
+        "image": "dataset_50cls/test/05_鱼香茄子/05_006609.jpg",
+        "reply": "识别到：**鱼香茄子**（置信度 98%）。\n估算分量约 230g，热量约 367 kcal，蛋白 7g / 脂肪 28g / 碳水 28g。",
+        "state": {
+          "last_food": "鱼香茄子",
+          "meal_items": 1,
+          "meal_kcal": 367.2,
+          "goal": null,
+          "history_turns": 2
+        }
+      },
+      {
+        "text": "它有多少蛋白质",
+        "image": null,
+        "reply": "鱼香茄子 约 230g，蛋白质约 7g。",
+        "state": {
+          "last_food": "鱼香茄子",
+          "meal_items": 1,
+          "meal_kcal": 367.2,
+          "goal": null,
+          "history_turns": 4
+        }
+      },
+      {
+        "text": "那脂肪呢",
+        "image": null,
+        "reply": "鱼香茄子 约 230g，脂肪约 28g。",
+        "state": {
+          "last_food": "鱼香茄子",
+          "meal_items": 1,
+          "meal_kcal": 367.2,
+          "goal": null,
+          "history_turns": 6
+        }
+      }
+    ]
+  },
+  {
+    "name": "一餐重置",
+    "turns": [
+      {
+        "text": "记录这个",
+        "image": "dataset_50cls/test/06_酸辣土豆丝/06_015373.jpg",
+        "reply": "识别到：**酸辣土豆丝**（置信度 82%）。\n估算分量约 222g，热量约 244 kcal，蛋白 4g / 脂肪 13g / 碳水 29g。",
+        "state": {
+          "last_food": "酸辣土豆丝",
+          "meal_items": 1,
+          "meal_kcal": 243.6,
+          "goal": null,
+          "history_turns": 2
+        }
+      },
+      {
+        "text": "这餐总共多少",
+        "image": null,
+        "reply": "这餐目前记录：酸辣土豆丝(222g)。\n合计 244 kcal，蛋白 4g / 脂肪 13g / 碳水 29g。",
+        "state": {
+          "last_food": "酸辣土豆丝",
+          "meal_items": 1,
+          "meal_kcal": 243.6,
+          "goal": null,
+          "history_turns": 4
+        }
+      },
+      {
+        "text": "新一餐",
+        "image": null,
+        "reply": "好的，已清空本餐记录，开始新一餐。发张照片吧。",
+        "state": {
+          "last_food": null,
+          "meal_items": 0,
+          "meal_kcal": 0,
+          "goal": null,
+          "history_turns": 6
+        }
+      }
+    ]
+  },
+  {
+    "name": "混合餐盘-识别+盘级汇总",
+    "turns": [
+      {
+        "text": "这盘菜一共多少热量",
+        "image": "dataset_50cls/mixed/plate_0001.jpg",
+        "reply": "这盘有 2 样菜：\n  - 家常豆腐：约 144g，187 kcal\n  - 西红柿炒蛋：约 211g，253 kcal（不太确定）\n整盘合计：约 355g、441 kcal，蛋白 26g / 脂肪 28g / 碳水 21g。",
+        "state": {
+          "last_food": "西红柿炒蛋",
+          "meal_items": 2,
+          "meal_kcal": 440.6,
+          "goal": null,
+          "history_turns": 2
+        }
+      },
+      {
+        "text": "总共多少",
+        "image": null,
+        "reply": "这餐目前记录：家常豆腐(144g)、西红柿炒蛋(211g)。\n合计 441 kcal，蛋白 26g / 脂肪 28g / 碳水 21g。",
+        "state": {
+          "last_food": "西红柿炒蛋",
+          "meal_items": 2,
+          "meal_kcal": 440.6,
+          "goal": null,
+          "history_turns": 4
+        }
+      }
+    ]
+  },
+  {
+    "name": "混合餐盘-后接共指再来一份",
+    "turns": [
+      {
+        "text": "看看这盘",
+        "image": "dataset_50cls/mixed/plate_0004.jpg",
+        "reply": "这盘有 2 样菜：\n  - 小笼包：约 288g，749 kcal（不太确定）\n  - 蒸蛋羹：约 144g，130 kcal\n整盘合计：约 432g、878 kcal，蛋白 40g / 脂肪 43g / 碳水 91g。",
+        "state": {
+          "last_food": "蒸蛋羹",
+          "meal_items": 2,
+          "meal_kcal": 878.4,
+          "goal": null,
+          "history_turns": 2
+        }
+      },
+      {
+        "text": "再来一份",
+        "image": null,
+        "reply": "好，再记一份 蒸蛋羹×1：144g，热量 130 kcal。",
+        "state": {
+          "last_food": "蒸蛋羹",
+          "meal_items": 3,
+          "meal_kcal": 1008.0,
+          "goal": null,
+          "history_turns": 4
+        }
+      },
+      {
+        "text": "总共多少",
+        "image": null,
+        "reply": "这餐目前记录：小笼包(288g)、蒸蛋羹(144g)、蒸蛋羹(144g)。\n合计 1008 kcal，蛋白 52g / 脂肪 52g / 碳水 95g。",
+        "state": {
+          "last_food": "蒸蛋羹",
+          "meal_items": 3,
+          "meal_kcal": 1008.0,
+          "goal": null,
+          "history_turns": 6
+        }
+      }
+    ]
+  },
+  {
+    "name": "混合餐盘-多盘累积",
+    "turns": [
+      {
+        "text": "第一盘",
+        "image": "dataset_50cls/mixed/plate_0001.jpg",
+        "reply": "这盘有 2 样菜：\n  - 家常豆腐：约 144g，187 kcal\n  - 西红柿炒蛋：约 211g，253 kcal（不太确定）\n整盘合计：约 355g、441 kcal，蛋白 26g / 脂肪 28g / 碳水 21g。",
+        "state": {
+          "last_food": "西红柿炒蛋",
+          "meal_items": 2,
+          "meal_kcal": 440.6,
+          "goal": null,
+          "history_turns": 2
+        }
+      },
+      {
+        "text": "第二盘",
+        "image": "dataset_50cls/mixed/plate_0002.jpg",
+        "reply": "这盘有 2 样菜：\n  - 肉夹馍：约 288g，806 kcal\n  - 饺子：约 288g，720 kcal\n整盘合计：约 576g、1526 kcal，蛋白 55g / 脂肪 75g / 碳水 167g。",
+        "state": {
+          "last_food": "饺子",
+          "meal_items": 4,
+          "meal_kcal": 1967.0,
+          "goal": null,
+          "history_turns": 4
+        }
+      },
+      {
+        "text": "今天总共吃了多少",
+        "image": null,
+        "reply": "这餐目前记录：家常豆腐(144g)、西红柿炒蛋(211g)、肉夹馍(288g)、饺子(288g)。\n合计 1967 kcal，蛋白 80g / 脂肪 103g / 碳水 188g。",
+        "state": {
+          "last_food": "饺子",
+          "meal_items": 4,
+          "meal_kcal": 1967.0,
+          "goal": null,
+          "history_turns": 6
+        }
+      }
+    ]
+  }
+]

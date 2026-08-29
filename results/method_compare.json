@@ -1,0 +1,32 @@
+[
+  {
+    "method": "zero_shot",
+    "template": "一张{c}的照片",
+    "top1": 60.5,
+    "top5": 83.67
+  },
+  {
+    "method": "zero_shot",
+    "template": "一张中餐菜品{c}的照片",
+    "top1": 78.33,
+    "top5": 97.0
+  },
+  {
+    "method": "zero_shot",
+    "template": "一张盘子里装着{c}的照片",
+    "top1": 63.33,
+    "top5": 88.0
+  },
+  {
+    "method": "few_shot",
+    "template": "",
+    "top1": 83.67,
+    "top5": 98.0
+  },
+  {
+    "method": "lora_50",
+    "template": "",
+    "top1": 81.5,
+    "top5": 98.17
+  }
+]

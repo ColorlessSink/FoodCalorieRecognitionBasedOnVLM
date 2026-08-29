@@ -1,0 +1,100 @@
+# =============================================================================
+# 大作业·卡路里识别智能体 全局配置
+# =============================================================================
+# 为什么需要 config.yaml：
+#   小作业里每个脚本都各自硬编码模型路径、data_dir、device、超参，复制粘贴到 6+ 个文件。
+#   大作业模块更多（识别/分量/营养/智能体），且要支持"小作业 20 类 vs 大作业 50 类"对照，
+#   把所有可调参数集中到一处，改一处全处生效，避免"改了 A 忘改 B"的不一致。
+# 用法：所有 models/ 脚本都 `from models.common import load_config; cfg = load_config()`。
+# =============================================================================
+
+project:
+  name: "calorie-agent"
+  # 数据集版本：50 类（大作业要求 ≥50 类，中餐 ≥20 类）
+  # 前 20 类与小作业完全一致，便于复用其 LoRA adapter 做"20类 vs 50类"对照实验。
+  n_classes: 50
+  data_dir: "dataset_50cls"        # 大作业主数据集
+  data_dir_20: "dataset_20cls"     # 小作业数据集（仅用于对照实验）
+
+model:
+  # Chinese-CLIP：本地视觉主力（识别 + 分割辅助）
+  # 选它的 why：① 原生中文文本塔，省去翻译环节；② 小作业已验证 CLS+projection 用法；
+  # ③ 本地推理可靠，不依赖代理 LLM 的视觉能力（见 process_log.md §0.3 实测）。
+  clip:
+    name: "OFA-Sys/chinese-clip-vit-base-patch16"
+    # 本地缓存快照（避免每次联网校验导致超时，小作业踩过的坑）
+    local_snapshot: "C:/Users/Bill/.cache/huggingface/hub/models--OFA-Sys--chinese-clip-vit-base-patch16/snapshots/f4a64596bbcf9a2a94591b74b9dc39b2e4e77e3e"
+  device: "cuda"
+  batch_size: 16
+
+# LLM（glm-5.2 via ZJU newapi 代理）：只做纯文本 CoT 推理 + 多轮对话
+# 限制：实测代理的 glm-5.2 视觉能力不可用（见 process_log.md §0.3），故仅用于文本任务，
+#       所有调用必须有规则兜底。
+llm:
+  enabled: true
+  base_url: "https://clusters.zju.edu.cn/newapi"   # 来自 ANTHROPIC_BASE_URL
+  model: "glm-5.2"                                  # 来自 ANTHROPIC_MODEL
+  token_env: "ANTHROPIC_AUTH_TOKEN"                 # 从环境变量取，不写死
+  timeout: 30
+  max_tokens: 1024
+  temperature: 0.3
+  # 兜底开关：LLM 失败时退化为规则计算，保证流水线不依赖网络
+  fallback_to_rules: true
+
+# 食物识别模块（模块1）
+recognition:
+  # 小作业在 20 类上测过 6 种模板，"一张中餐菜品{c}的照片"最优(93.0%/98.75%)。
+  # 大作业 50 类复测：60.50%(一张{c}的照片) → 78.33%(一张中餐菜品{c}的照片)，Top-5 97%。
+  # 远超 Top-1≥60%、Top-5≥85% 的硬指标。详见 process_log.md §3.1。
+  template: "一张中餐菜品{c}的照片"
+  templates_for_compare:              # 基线对比用（≥3 种）
+    - "一张{c}的照片"
+    - "一张中餐菜品{c}的照片"
+    - "一张盘子里装着{c}的照片"
+  few_shot:
+    k_shot: 10
+    seed: 67                          # 与小作业一致，便于对照
+  lora:
+    adapter_dir_20: "results/lora_adapter"        # 小作业训练好的 20 类 adapter
+    adapter_dir_20_aug: "results/lora_adapter_aug"
+    adapter_dir_50: "results/lora_adapter_50"     # 大作业 50 类 adapter（待训练）
+
+# 分量估计模块（模块2）——两种方法对比
+portion:
+  # 方法A：面积×厚度×密度的几何估算（餐盘先验校准）
+  method_a:
+    plate_real_cm: 23.0               # 普通家用餐盘直径
+    # 关键修复（见 process_log.md §3.2）：餐盘直径 = plate_frac × 图像短边。
+    # 早期用固定 plate_ref_px=900，导致 cm_per_px 与图像分辨率耦合：
+    #   大图(1440px) → cm_per_px 偏大 → 食物面积爆高（回锅肉估到 1683g）。
+    # 改为"每图按短边校准"后，几何估计与图像分辨率解耦（corr(ar,short)=0.007 已验证）。
+    plate_frac: 0.85                  # 餐盘直径约占图像短边 85%
+    # 无真实参考物时几何绝对值不可靠，只信"相对先验的偏离"，钳到先验窗口再混合：
+    clamp_lo: 0.8                     # 几何下限 = 0.8 × 类先验均值
+    clamp_hi: 1.3                     # 几何上限 = 1.3 × 类先验均值
+    geo_weight: 0.2                   # 最终 = 0.2×几何(钳后) + 0.8×先验（先验为锚，见 §0.4 评估口径）
+    ar_fail_thresh: 0.05             # 面积比<此值视为分割失败 → 退先验
+    thickness_cm:                    # 每类先验厚度(cm)，按密度反推或人工先验
+      default: 2.5
+  # 方法B：CoT LLM 推理（把识别结果+面积占比喂给 LLM，让它分步估重量）
+  method_b:
+    enabled: true
+    prompt_template: "portion_cot.txt"
+
+# 营养查询模块（模块3）
+nutrition:
+  db_path: "data/nutrition_db.csv"
+
+# 智能体模块（模块4）
+agent:
+  max_history: 10                     # 多轮对话上下文保留轮数
+  goals: ["减脂", "增肌", "维持", "控糖"]   # 个性化目标
+
+# 评估
+eval:
+  splits: ["standard", "real", "challenge"]
+  target:
+    top1: 0.60
+    top5: 0.85
+    portion_mae_g: 30.0
+    calorie_mae_kcal: 50.0

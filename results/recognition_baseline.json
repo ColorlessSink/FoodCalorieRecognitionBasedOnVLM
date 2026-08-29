@@ -1,0 +1,39 @@
+[
+  {
+    "method": "zero_shot",
+    "template": "一张{c}的照片",
+    "top1": 60.5,
+    "top5": 83.67,
+    "mean_conf": 0.796,
+    "seconds": 9.4
+  },
+  {
+    "method": "zero_shot",
+    "template": "一张中餐菜品{c}的照片",
+    "top1": 78.33,
+    "top5": 97.0,
+    "mean_conf": 0.85,
+    "seconds": 9.1
+  },
+  {
+    "method": "zero_shot",
+    "template": "一张盘子里装着{c}的照片",
+    "top1": 63.33,
+    "top5": 88.0,
+    "mean_conf": 0.795,
+    "seconds": 8.8
+  },
+  {
+    "method": "few_shot",
+    "k_shot": 10,
+    "top1": 83.67,
+    "top5": 98.0,
+    "mean_conf": 0.861
+  },
+  {
+    "method": "lora_50",
+    "top1": 81.5,
+    "top5": 98.17,
+    "mean_conf": 0.891
+  }
+]

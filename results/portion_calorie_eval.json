@@ -1,0 +1,20 @@
+{
+  "geometric": {
+    "mae_g": 33.2,
+    "median_ae_g": 30.2,
+    "rel_err_pct": 16.7,
+    "le30g_ratio_pct": 50.0,
+    "calorie_mae_kcal": 60.2,
+    "calorie_rel_pct": 16.6,
+    "n": 30
+  },
+  "cot_llm": {
+    "mae_g": 33.0,
+    "median_ae_g": 30.2,
+    "rel_err_pct": 16.6,
+    "le30g_ratio_pct": 50.0,
+    "calorie_mae_kcal": 59.6,
+    "calorie_rel_pct": 16.6,
+    "n": 30
+  }
+}

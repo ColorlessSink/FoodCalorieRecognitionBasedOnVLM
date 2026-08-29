@@ -1,0 +1,49 @@
+{
+  "method": "LoRA r=8 alpha=16 (50类)",
+  "data_dir": "dataset_50cls",
+  "n_classes": 50,
+  "template": "一张中餐菜品{c}的照片",
+  "epochs": 6,
+  "best_val_top1": 82.0,
+  "test_top1": 81.5,
+  "test_top5": 98.17,
+  "train_minutes": 5.8,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.5913,
+      "val_top1": 74.0,
+      "val_top5": 96.0
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.3939,
+      "val_top1": 77.33,
+      "val_top5": 97.67
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.3552,
+      "val_top1": 79.0,
+      "val_top5": 98.67
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.3103,
+      "val_top1": 81.67,
+      "val_top5": 98.33
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.289,
+      "val_top1": 81.0,
+      "val_top5": 97.67
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.2681,
+      "val_top1": 82.0,
+      "val_top5": 97.67
+    }
+  ]
+}
