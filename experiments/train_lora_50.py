@@ -8,7 +8,7 @@ experiments/train_lora_50.py — 50 类 LoRA 微调训练
   本脚本在 50 类训练集上用 InfoNCE 对比学习微调 LoRA，验证"少样本域适应"创新点
   能否在 50 类上进一步提升，并产出 results/lora_adapter_50 供 ablation/识别模块复用。
 
-设计（沿用小作业 lora_train.py 验证过的配方，仅把数据/类别口径切到 50 类）：
+设计（沿用小作业 lora_train.py 验证过的方法，仅把数据/类别口径切到 50 类）：
   - 冻结 Chinese-CLIP 全部参数，只在文本塔/视觉塔的 Q、V 注入 LoRA(r=8, α=16)
   - InfoNCE 双向 loss（图→文 + 文→图），logit_scale 用模型自带的温度
   - 每 epoch 评测 val，保留 val Top-1 最高的 adapter

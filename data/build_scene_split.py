@@ -26,7 +26,7 @@ def main():
     paths = [os.path.join(DATA, str(p).replace("\\", "/")) for p in df["path"]]
 
     stats = [image_stats(p) for p in paths]
-    v  = np.array([s[0] for s in stats])
+    v = np.array([s[0] for s in stats])
     sv = np.array([s[1] for s in stats])
     bl = np.array([s[2] for s in stats])
     ar = np.array([s[3] for s in stats])

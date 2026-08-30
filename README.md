@@ -6,7 +6,7 @@
 
 基于视觉-语言模型（Chinese-CLIP）构建一个食物卡路里识别智能体，完成"拍照 → 认菜 → 估分量 → 算热量 → 多轮对话"全流程。在"中餐数据集无分量标注 + 代理 LLM 视觉不可用"双重约束下，采用**本地视觉 + 远程纯文本 LLM + 规则兜底**的三层解耦架构。
 
-四个模块：①食物识别（Chinese-CLIP 零样本/少样本/LoRA 三模式）②分量估计（GrabCut 分割 + 面积比相对调制 + 类先验锚）③营养查询与卡路里计算 ④多轮对话智能体（置信度门控 / 共指一餐状态机 / 个性化目标适配）。
+四个模块：①食物识别（Chinese-CLIP 零样本/少样本/LoRA 三模式）②分量估计（GrabCut 分割 + 面积比相对调制 + 类先验锚）③营养查询与卡路里计算 ④多轮对话智能体（置信度门控追问闭环 / 共指一餐状态机 / 半份纠正 / 个性化目标适配）。
 
 ## 大作业结果汇总（50 类，test 600 张）
 
@@ -17,9 +17,9 @@
 | 识别类别数 | ≥50 | 50 | ✅ |
 | 分量 MAE | ≤30g 或 rel≤25% | 全量 24.4-25.3g / rel 16.7% | ✅ |
 | 卡路里 MAE（单） | ≤50kcal | 全量约 45kcal | ✅ |
-| 混合餐盘卡路里 MAE | ≤100kcal | oracle 63.9 / e2e 120.9（中位 81.1），组件识别 Top-1 82.4%，检测区域数 119/120 | ⚠️ oracle 达标，e2e 见报告分层分析 |
-| 智能体用例 | ≥10 | 14 用例 34 轮（含 3 个混合餐盘用例） | ✅ |
-| 智能体准确率 | ≥80% | 100%（34/34） | ✅ |
+| 混合餐盘卡路里 MAE | ≤100kcal | oracle 63.9 / e2e 110.9（中位 76.5），组件识别 Top-1 78.1%（few_shot 模式，与 soft-kcal 概率加权联动使 e2e 120.9→110.9），检测区域数 119/120 | ⚠️ oracle 达标，e2e 见报告分层分析 |
+| 智能体用例 | ≥10 | 18 用例 50 轮（含 3 个混合餐盘用例） | ✅ |
+| 智能体准确率 | ≥80% | 100%（50/50） | ✅ |
 | 创新点 | ≥2 | 3 | ✅ |
 | 消融 | ≥2 | 3 | ✅ |
 | 失败案例 | ≥15 | 18 | ✅ |
@@ -83,8 +83,10 @@ Chinese-CLIP 模型 `OFA-Sys/chinese-clip-vit-base-patch16` 需提前下载到�
 ├── demo/
 │   ├── cli_demo.py                 命令行交互 Demo
 │   ├── web_demo.py                 Gradio Web Demo（上传图片 + 对话 + 状态面板）
-│   └── dialogue_cases.json         14 个对话测试用例（含 3 个混合餐盘）
-├── tools/utils.py                  通用工具
+│   └── dialogue_cases.json         18 个对话测试用例（含 3 个混合餐盘）
+├── tools/
+│   ├── label_scene.py              三场景人工标注工具（看图按键，修正自动划分）
+│   └── utils.py                    通用工具
 ├── report/
 │   ├── literature_review.md        文献综述（6019字/40引）
 │   ├── process_log.md              过程日志（含难点与错误记录）
@@ -108,9 +110,17 @@ python build_dataset_50.py        # 50 类数据集 → dataset_50cls/
 python data/build_nutrition_db.py # 营养库 → data/nutrition_db.csv
 python data/build_labels.py       # 合成真值 → dataset_50cls/test_labels.csv
 python data/build_area_stats.py   # 面积比标定 → data/area_ratio_stats.csv
-python data/build_scene_split.py  # 场景分层 → dataset_50cls/test_scene.csv
+python data/build_scene_split.py  # 场景分层（自动统计代理）→ dataset_50cls/test_scene.csv
 python data/build_mixed_plates.py # 混合餐盘 120 盘 → dataset_50cls/mixed/
 ```
+
+#### 1b. 三场景人工标注（可选，用于修正自动划分）
+
+```bash
+python tools/label_scene.py       # 看图按键标注，随时可中断续标
+```
+
+- 输出与 `build_scene_split.py` 完全对齐（同输入 `test.csv`，同输出列 `split,path,label,scene`、小写场景值、`utf-8-sig`、行序一致，`baseline_eval.py` 直接兼容）；进度实时写 `dataset_50cls/scene_labels_progress.json`；首次导出前自动把自动版备份为 `test_scene_auto.csv`（之后不覆盖备份）；导出时终端打印人工 vs 自动的一致率与 Cohen's kappa；未标满 600 张会拒绝导出。
 
 #### 2. 训练 50 类 LoRA（可选，零样本/少样本已达标）
 
@@ -134,7 +144,7 @@ python experiments/visualization.py    # 图表 → results/figures/fig1-6.png
 # 单图识别
 python demo/cli_demo.py --image dataset_50cls/test/00_麻婆豆腐/00_003720.jpg
 
-# 跑 14 个对话用例（--no-llm 用规则兜底，默认调 glm-5.2）
+# 跑 18 个对话用例（--no-llm 用规则兜底，默认调 glm-5.2）
 python demo/cli_demo.py --script demo/dialogue_cases.json --no-llm
 ```
 
@@ -146,7 +156,7 @@ python demo/web_demo.py --no-llm    # 禁用 LLM，纯规则模式
 python demo/web_demo.py --port 7863 # 指定端口（多用户共用机器时）
 ```
 
-上传单食物或混合餐盘照片 + 文字提问，右侧状态面板实时显示本餐累积与个性化目标；"新一餐"按钮清空记录。多用户共享服务器部署时若遇 `/tmp/gradio` 权限错误，设置环境变量 `GRADIO_TEMP_DIR=$HOME/gradio_tmp` 再启动。
+上传单食物或混合餐盘照片 + 文字提问，右侧状态面板实时显示本餐累积与个性化目标；"新一餐"按钮清空记录。界面（v3 布局重构，纯 UI 层改动、与 CalorieAgent 管线零接触）：Soft emerald 主题；紧凑 hero（左侧标题+一句话说明，右侧能力徽章横排：50 类识别/混合餐盘/多轮对话/断网可用/LLM 状态）；左列为对话主区——Chatbot 下接统一输入区`[ 菜品照片 | 文字 + 发送/新一餐 ]`，按工作流组织（图片是主要输入占左格、文字补充在右、发送与新一餐同为"动作"归按钮行）；右列为 HTML 状态卡片——热量大数字、蛋白/脂肪/碳水宏量进度条、本餐食物清单 chips、个性化目标徽章，门控反问未收敛时亮起"等待你回答菜名或序号"琥珀色提示。多用户共享服务器部署时若遇 `/tmp/gradio` 权限错误，设置环境变量 `GRADIO_TEMP_DIR=$HOME/gradio_tmp` 再启动。
 
 ## 大作业关键说明
 
@@ -165,5 +175,5 @@ python demo/web_demo.py --port 7863 # 指定端口（多用户共用机器时）
 
 ## 备注
 
-- `ChineseFood Net 3/`（原始数据）、`dataset_50cls/`（构建产物，2400+ 张图）、`.claude/` 已在 `.gitignore` 中忽略，不入库；**`results/`（含 figures）会入库**，它们是报告数字的凭证。
+- `ChineseFood Net 3/`（原始数据）、`dataset_50cls/`（构建产物，2400+ 张图，含 `test_scene*.csv` 与标注进度 `scene_labels_progress.json`）、`.claude/` 已在 `.gitignore` 中忽略，不入库；**`results/`（含 figures）会入库**，它们是报告数字的凭证。
 - 各脚本中的 `_LOCAL_SNAP` 是本机 HuggingFace 缓存快照路径，换机器运行时需改为自己的路径或留空使用在线模型名。

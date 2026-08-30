@@ -81,10 +81,17 @@ portion:
 nutrition:
   db_path: "data/nutrition_db.csv"
 
+# 混合餐盘（模块间协作：mixed_detector 检测 + FoodRecognizer 识别组件）
+mixed:
+  # 组件识别模式：few_shot 在单食物 test 上 Top-1 83.67% > LoRA 81.50%，
+  # 组件裁剪图更接近"居中单食物"分布，故默认 few_shot（见 process_log.md 混合盘改进条目）
+  recognizer_mode: "few_shot"          # few_shot | lora | zero_shot
+
 # 智能体模块（模块4）
 agent:
   max_history: 10                     # 多轮对话上下文保留轮数
   goals: ["减脂", "增肌", "维持", "控糖"]   # 个性化目标
+  confidence_gate: 0.3                # 门控下限：识别置信度低于 max(此值, target_top1×0.5) 时反问
 
 # 评估
 eval:

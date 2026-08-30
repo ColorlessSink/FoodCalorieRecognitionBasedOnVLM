@@ -5,7 +5,7 @@
     "top1": 60.5,
     "top5": 83.67,
     "mean_conf": 0.796,
-    "seconds": 9.4
+    "seconds": 9.6
   },
   {
     "method": "zero_shot",
@@ -13,7 +13,7 @@
     "top1": 78.33,
     "top5": 97.0,
     "mean_conf": 0.85,
-    "seconds": 9.1
+    "seconds": 14.8
   },
   {
     "method": "zero_shot",
@@ -21,7 +21,7 @@
     "top1": 63.33,
     "top5": 88.0,
     "mean_conf": 0.795,
-    "seconds": 8.8
+    "seconds": 15.0
   },
   {
     "method": "few_shot",

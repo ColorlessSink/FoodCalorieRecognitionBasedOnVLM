@@ -33,7 +33,7 @@
   5. 演示（2 分钟：`python demo/web_demo.py --no-llm` 现场跑单食物 + 混合盘 + "再来一份"共指）；
   6. 失败案例与改进（1 页：面点家族混淆 + "自信地错"）。
 - **演示预案**：提前把 web_demo 起好、图片放桌面；断网用 `--no-llm` 规则模式保底（流水线不依赖网络是设计卖点）。
-- **必背数字**：Top-1 78.33/81.50/83.67；分量 MAE 全量 24-25g；混合盘 oracle 63.9 / e2e 120.9；14 用例 34 轮 100%。
+- **必背数字**：Top-1 78.33/81.50/83.67；分量 MAE 全量 24-25g；混合盘 oracle 63.9 / e2e 110.9（组件识别已切 few_shot + soft-kcal 概率加权，从 120.9 改善而来）；18 用例 50 轮 100%。
 
 ### 4. GPT-4V / 其他多模态 API 基线实测（"≥2 种 VLM 基线"的补强）
 
@@ -46,22 +46,22 @@
 
 ### 5. 确认最终数字与文件一致性（交前检查）
 
-- 交前把 `README.md`、`report/final_report.md` §4.6、`report/process_log.md` §3.8 三处指标汇总表对一遍（现已统一为：14 用例 34 轮、文献综述 6019 字 40 引、混合盘 oracle 63.9/e2e 120.9）。
-- 确认 `results/` 下 JSON 与表格数字一致（尤其 `mixed_plate_eval.json`、`dialogue_test_results.json` 14 用例）。
+- 交前把 `README.md`、`report/final_report.md` §4.6、`report/process_log.md` §3.8 三处指标汇总表对一遍（现已统一为：18 用例 50 轮、文献综述 6019 字 40 引、混合盘 oracle 63.9/e2e 110.9）。
+- 确认 `results/` 下 JSON 与表格数字一致（尤其 `mixed_plate_eval.json`、`dialogue_test_results.json` 18 用例）。
 - 若老师要求 PDF/Word 版报告，把四个 md 导出（Typora/VS Code 插件均可）。
 
 ---
 
 ## P1 · 显著加分
 
-### 6. 混合餐盘端到端 MAE 120.9 → ≤100（唯一未硬达标指标）
+### 6. 混合餐盘端到端 MAE 110.9 → ≤100（唯一未硬达标指标）
 
-- **现状**：oracle 63.9 达标、e2e 120.9 超 20.9。分层定位显示瓶颈在组件识别（51/680 错菜），不在检测（召回 100%）或分量。
+- **现状**：oracle 63.9 达标、e2e 110.9 超预算 10.9（已从 120.9 改善：组件识别切 few_shot + soft-kcal top-5 概率加权，代价是组件 Top-1 82.3%→78.1%，但热量误差更小——分类准确率与热量误差背离，见 process_log 难点 9b）。分层定位显示瓶颈仍在组件识别（51/288 错菜），不在检测（召回 100%）或分量。
 - **最短路径**（预计半天）：
-  1. 把组件识别从 LoRA 模式切换到**少样本 10-shot 模式**（单食物上它比 LoRA 高 2.2 点），改 `experiments/mixed_eval.py` 里 `rec.mode` 重跑 120 盘——如果组件 Top-1 从 82.4% 升到 ~85%，e2e MAE 有望落到 ~105 左右；
-  2. 若还不够，对组件裁剪图做**轻度增强推理**（如 padding 后再送识别，缓解贴片边缘伪影）；
-  3. 若还不达标，接受现状并在答辩主动讲分层分析——"oracle 达标证明流水线健康，e2e 差距全部来自识别，改进路径明确"本身是加分的工程判断。
-- 服务器上跑：`cd ~/eaglelab && python3 experiments/mixed_eval.py`（约 10 分钟，3090）。
+  1. 对组件裁剪图做**轻度增强推理**（如 padding 后再送识别，缓解贴片边缘伪影）；
+  2. 细粒度子分类器（面点家族单独训）或 Grounding DINO 开集检测（见 final_report 改进方向 4）；
+  3. 若还不达标，接受现状并在答辩主动讲分层分析——"oracle 达标证明流水线健康，e2e 差距全部来自识别，且 soft-kcal 已把不确定性摊进期望"本身是加分的工程判断。
+- 服务器上跑：`cd ~/eaglelab && python3 experiments/mixed_eval.py`（约 5 分钟，3090；模式在 `config/config.yaml` 的 `mixed.recognizer_mode` 切换）。
 
 ### 7. 自采图像的量化评估（若完成 P0-1）
 
@@ -105,4 +105,7 @@
 | config.yaml 集中配置 | ✅ `config/config.yaml` |
 | README（含硬件说明、目录结构、单条命令运行） | ✅ `README.md` |
 | CLI Demo + Web Demo（Gradio 6，服务器 GPU 实测通过） | ✅ `demo/cli_demo.py`、`demo/web_demo.py` |
-| 对话用例 14 个 34 轮（含混合盘 3 例） | ✅ `demo/dialogue_cases.json`、`results/dialogue_test_results.json` |
+| 对话用例 18 个 50 轮（含混合盘 3 例、门控闭环/半份纠正/数字窗口/长对话） | ✅ `demo/dialogue_cases.json`、`results/dialogue_test_results.json` |
+| 混合盘组件识别改进（few_shot + soft-kcal，e2e 120.9→110.9） | ✅ `config/config.yaml`（`mixed.recognizer_mode`）、`experiments/mixed_eval.py` |
+| Agent 多轮能力改进（门控追问闭环/半份纠正/数字窗口/多槽共指） | ✅ `models/calorie_agent.py` |
+| Web Demo 美化+布局重构 v3（emerald 主题/紧凑 hero/统一输入区[图片\|文字+发送/新一餐]/HTML 状态卡片） | ✅ `demo/web_demo.py` |

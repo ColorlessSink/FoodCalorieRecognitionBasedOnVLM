@@ -12,6 +12,8 @@ models/calorie_agent.py — 智能体交互模块（模块4）
     - 共指消解：把"它/这个/再来一份/刚才那个菜"解析到上下文里最近一次食物
     - 个性化：按用户目标（减脂/增肌/维持/控糖）调整建议口径与宏量分配
     - 一餐累积：跨轮累加已报过的食物，支持"今天总共吃了多少"
+    - 追问闭环（v2 新增）：低置信反问后记住 pending 状态，用户答菜名/序号
+      即收敛入账；分量纠正（"只吃了一半"）按比例改账，不再答非所问
 
   创新点（≥2，见 process_log.md §2.4）：
     ① 置信度门控：识别置信度低于阈值时，主动反问"是不是 XX？"而非硬猜，
@@ -52,6 +54,15 @@ class CalorieAgent:
         self.last_food = None        # 最近一次识别到的食物 {idx,name,weight,kcal,...}
         self.meal_items = []         # 本餐累积 [{idx,name,weight,kcal,protein,fat,carbs}]
         self.user_goal = None        # 个性化目标
+        # 门控追问上下文：低置信反问后，等用户用菜名/序号回答。
+        # None = 无待澄清；否则 {"image_path", "topk": [(idx,name,score),...]}。
+        # 这是"多轮追问闭环"的关键状态——没有它，反问后的回答会被
+        # 误路由到"纠正/闲聊"分支，追问永远不收敛（见 process_log.md agent 改进）。
+        self.pending_clarification = None
+
+        # 门控阈值：低于 max(confidence_gate, target_top1×0.5) 时反问。
+        # 放进 config（agent.confidence_gate）而非硬编码，消融/调参可配。
+        self.conf_gate = float(self.cfg["agent"].get("confidence_gate", 0.3))
 
     # ---------------- 懒加载下游 ----------------
     @property
@@ -99,6 +110,21 @@ class CalorieAgent:
         返回: {"reply": str, "state": {...}, "turn": int}
         """
         self.history.append({"role": "user", "content": user_input})
+        # 门控追问闭环：上一轮 agent 反问"是不是 XX？"且用户还没回答时，
+        # 本轮输入先尝试当"澄清回答"解析（菜名/序号/"就是X"）。
+        # 命中 → 走收敛分支入账；未命中（如用户换了话题问总量）→ 保持
+        # 常规意图路由，pending 状态不误吞新指令。
+        if self.pending_clarification and not image_path:
+            resolved = self._try_resolve_clarification(user_input)
+            if resolved is not None:
+                reply = self._apply_clarification(resolved)
+                self.history.append({"role": "assistant", "content": reply})
+                return {
+                    "reply": reply,
+                    "turn": len(self.history) // 2 + 1,
+                    "state": self._state_snapshot(),
+                }
+
         intent = self._understand(user_input)
 
         # ---- 意图分发 ----
@@ -109,6 +135,8 @@ class CalorieAgent:
         # 下一轮"总共多少"自然汇总。所以 ask_total 只在无图时成立。
         if intent == "set_goal":
             reply = self._handle_set_goal(user_input)
+        elif intent == "portion_correct" and not image_path:
+            reply = self._handle_portion_correct(user_input)
         elif intent == "again" and not image_path:
             reply = self._handle_again(user_input)
         elif intent == "ask_total" and not image_path:
@@ -148,11 +176,18 @@ class CalorieAgent:
         # 询问总量
         if any(k in t for k in ["总共", "一共", "今天吃了多少", "合计", "累计", "总共多少"]):
             return "ask_total"
-        # 再来一份 / 同一个再来
+        # 分量纠正（半份/一半/剩下）：对最近食物按比例重算
+        if any(k in t for k in ["半份", "一半", "半碗", "半盘", "只吃了半", "剩一半", "没吃完", "吃不完"]) \
+                or re.search(r"(?:只吃|吃了|剩下?)了?([0-9一二三四五六七八九]{1,2})(?:成|分之[一二三四五六七八九十]+)", t):
+            return "portion_correct"
+        # 再来一份 / 同一个再来。
+        # 注意顺序在 portion_correct 之后："再来半份"里"半份"是分量语义优先。
         if any(k in t for k in ["再来一份", "再来一", "再来", "又吃了一份", "再吃一份", "同样的", "再来同样"]):
             return "again"
-        # 修正/纠正
-        if any(k in t for k in ["不是", "错了", "其实是", "应该是", "我吃的是", "这是"]):
+        # 修正/纠正（"这是"只在无 pending/无图语境下才像纠正，放最后）
+        if any(k in t for k in ["不是", "错了", "其实是", "应该是", "我吃的是"]):
+            return "correct"
+        if "这是" in t and not self.last_food is None and "什么" not in t:
             return "correct"
         # 新一餐重置
         if any(k in t for k in ["新一餐", "清空", "重新开始", "新一顿"]):
@@ -188,10 +223,14 @@ class CalorieAgent:
 
         # 创新点①：置信度门控
         conf_thr = self.cfg["eval"].get("target", {}).get("top1", 0.6)
-        if conf < max(0.3, conf_thr * 0.5):
-            top3 = ", ".join(f"{t[1]}({t[2]*100:.0f}%)" for t in topk[0][:3])
-            return (f"这张图我不太确定，最像的前三种是：{top3}。"
-                    f"能告诉我具体是哪个吗？或者换个角度拍一张。")
+        if conf < max(self.conf_gate, conf_thr * 0.5):
+            top3 = topk[0][:3]
+            self.pending_clarification = {"image_path": image_path, "topk": top3}
+            self._clarify_image = image_path
+            top3_str = ", ".join(f"{t[1]}({t[2]*100:.0f}%)" for t in top3)
+            return (f"这张图我不太确定，最像的前三种是：{top3_str}。"
+                    f"能告诉我具体是哪个吗？（回复菜名或序号 1/2/3）"
+                    f"或者换个角度拍一张。")
 
         # 分量 + 营养
         pres = self.portion.estimate_geometric(image_path, idx, name)
@@ -269,18 +308,69 @@ class CalorieAgent:
             reply += "\n" + goal_tip
         return reply
 
+    def _try_resolve_clarification(self, text):
+        """把用户的回答解析成待澄清 top-3 之一（或 50 类里的菜名）。
+        返回 (idx, name)；解析不出返回 None。支持：
+          ① 序号回答："1" "2" "第三个"
+          ② 菜名回答："宫保鸡丁" "是宫保鸡丁" "就是那个宫保鸡丁"
+          ③ 候选名模糊命中："宫保" → 宫保鸡丁
+        """
+        t = text.strip()
+        if not t:
+            return None
+        topk = self.pending_clarification.get("topk", [])
+        # ① 序号（"1"/"2"/"3"/"第一个"）。纯数字或"第X个"才算，
+        # 防止"再来2份"被当序号吞掉。
+        m = re.fullmatch(r"[123]|第[一二三1-3]个?", t)
+        if m and topk:
+            j = int(t[0]) - 1 if t[0].isdigit() else ["一", "二", "三"].index(t[1])
+            return (topk[j][0], topk[j][1])
+        # ②/③ 菜名：先精确/模糊匹配 50 类，再看是否命中候选
+        for idx, zh in zip(self.recognizer.class_idx, self.recognizer.names_zh):
+            if zh in t:
+                return (idx, zh)
+        for cand in topk:
+            if cand[1] in t or t in cand[1]:
+                return (cand[0], cand[1])
+        return None
+
+    def _apply_clarification(self, resolved):
+        """用户澄清后：按选定类走完整"分量→营养→入账"，追问闭环收敛。"""
+        self.pending_clarification = None
+        idx, name = resolved
+        # 优先用反问时的原图重走分量（口径与首轮识别一致）
+        src = getattr(self, "_clarify_image", None)
+        if src and os.path.exists(src):
+            pres = self.portion.estimate_geometric(src, idx, name)
+            weight = pres["weight_g"]
+        else:
+            weight = 220.0
+        nres = self.nutrition.compute(idx, weight)
+        self.last_food = {**nres, "confidence": 1.0}
+        self.meal_items.append(copy.deepcopy(self.last_food))
+        return self._compose_recognize_reply(nres, 1.0)
+
     def _handle_again(self, text):
         """共指：再来一份 → 复用最近食物，但分量可含倍数。"""
         if not self.last_food:
             return "你还没告诉过我你吃了什么呢，先发张照片吧。"
-        # 解析倍数："再来两份" "再来3份"
-        m = re.search(r"[两二三四五六七八九]|(\d+)", text)
+        # 解析倍数："再来两份" "再来3份"。
+        # 只在触发词后 4 字内取数字，且"数字+分钟/点/天/月"等时间量词要跳过
+        # （"再来3分钟前那个"的 3 是时间不是份数——多轮对话鲁棒性修复，
+        #  见 process_log.md agent 改进条目）。
         mult = 1
-        if m:
-            s = m.group(0)
-            cn = {"两":2,"二":2,"三":3,"四":4,"五":5,"六":6,"七":7,"八":8,"九":9}
-            if s in cn: mult = cn[s]
-            elif s.isdigit(): mult = int(s)
+        for m in re.finditer(r"再来|再吃|又吃", text):
+            window = text[m.end():m.end() + 4]
+            dm = re.search(r"[两二三四五六七八九]|\d+", window)
+            if dm:
+                s = dm.group(0)
+                after = window[dm.end():dm.end() + 2]
+                if re.match(r"分钟|小时|天|个月|点|次后", after):
+                    continue          # 时间量词，不是份数
+                cn = {"两": 2, "二": 2, "三": 3, "四": 4, "五": 5,
+                      "六": 6, "七": 7, "八": 8, "九": 9}
+                mult = cn[s] if s in cn else int(s)
+                break
         f = self.last_food
         w = f["weight_g"] * mult
         nres = self.nutrition.compute(f["food_idx"], w)
@@ -289,6 +379,42 @@ class CalorieAgent:
         self.last_food = {**nres, "confidence": f.get("confidence", 0)}
         return (f"好，再记一份 {f['food_name']}×{mult}：{w:.0f}g，"
                 f"热量 {nres['kcal']:.0f} kcal。")
+
+    def _handle_portion_correct(self, text):
+        """分量纠正：'半份/一半/剩一半' → 对最近食物按比例重算并改账。
+        与菜名纠正（_handle_correct）互补：那个改'是什么'，这个改'吃了多少'。"""
+        if not self.last_food:
+            return "目前还没有记录，先发张照片，再告诉我要减多少。"
+        f = self.last_food
+        # 比例解析：默认 0.5；"吃了三成/剩七成"按成数折算
+        ratio = 0.5
+        m = re.search(r"(?:吃了?|剩下?|只吃)([0-9一二三四五六七八九十]{1,2})(?:成|成分)", text)
+        if m:
+            s = m.group(1)
+            cn = {"一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
+                  "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
+            ratio = (cn[s] if s in cn else int(s)) / 10.0
+        elif "大半" in text:
+            ratio = 0.7
+        elif "小半" in text:
+            ratio = 0.3
+        # 同源条目定位：meal_items 里与 last_food 同名且最新的那条
+        # （last_food 与 meal_items[-1] 可能不同源——中间夹过"再来一份"）
+        tgt = None
+        for i in range(len(self.meal_items) - 1, -1, -1):
+            if self.meal_items[i]["food_name"] == f["food_name"]:
+                tgt = i
+                break
+        if tgt is None:
+            tgt = len(self.meal_items) - 1 if self.meal_items else None
+        w = f["weight_g"] * ratio
+        nres = self.nutrition.compute(f["food_idx"], w)
+        nres["food_name"] = f["food_name"]
+        if tgt is not None:
+            self.meal_items[tgt] = {**nres, "confidence": f.get("confidence", 0)}
+        self.last_food = {**nres, "confidence": f.get("confidence", 0)}
+        return (f"好的，按 {ratio*100:.0f}% 重算：{f['food_name']} {w:.0f}g，"
+                f"热量约 {nres['kcal']:.0f} kcal。")
 
     def _handle_correct(self, text):
         """纠正：从文本里抠菜名，查库改 last_food 的类别。"""
@@ -308,9 +434,16 @@ class CalorieAgent:
         # 沿用上次的分量
         w = self.last_food["weight_g"] if self.last_food else 220.0
         nres = self.nutrition.compute(idx, w)
-        # 修正最近一条 meal_items
-        if self.meal_items:
-            self.meal_items[-1] = {**nres, "confidence": 0.6}
+        # 修正最近一条 meal_items——但必须与 last_food 同源（菜名相同）：
+        # 中间夹过"再来一份"时 meal_items[-1] 是另一道菜，盲改会改错账。
+        tgt = len(self.meal_items) - 1 if self.meal_items else None
+        if self.meal_items and self.last_food:
+            for i in range(len(self.meal_items) - 1, -1, -1):
+                if self.meal_items[i]["food_name"] == self.last_food["food_name"]:
+                    tgt = i
+                    break
+        if tgt is not None:
+            self.meal_items[tgt] = {**nres, "confidence": 0.6}
         self.last_food = {**nres, "confidence": 0.6}
         return (f"好的，记成 **{zh}**，{w:.0f}g，热量约 {nres['kcal']:.0f} kcal。")
 
@@ -430,6 +563,7 @@ class CalorieAgent:
             "meal_kcal": round(sum(f["kcal"] for f in self.meal_items), 1),
             "goal": self.user_goal,
             "history_turns": len(self.history),
+            "pending_clarification": bool(self.pending_clarification),
         }
 
     def reset_meal(self):
@@ -437,3 +571,4 @@ class CalorieAgent:
         （用户说"新一餐"是想换一道菜继续吃，不是想换减肥目标）。"""
         self.meal_items = []
         self.last_food = None
+        self.pending_clarification = None

@@ -28,7 +28,8 @@ import pandas as pd
 sys.stdout.reconfigure(encoding="utf-8")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models.common import ROOT, load_config
+from models.common import ROOT, load_config, load_classes
+from models.food_recognizer import FoodRecognizer, gather_from_split
 from models.mixed_detector import MixedDetector
 from tools.utils import imread_unicode
 
@@ -60,15 +61,35 @@ def main():
     data_dir = cfg["project"]["data_dir"]
     df = pd.read_csv(os.path.join(ROOT, data_dir, "test_mixed.csv"))
 
-    from models.food_recognizer import FoodRecognizer
+    from models.food_recognizer import FoodRecognizer  # noqa: F401  (保持原导入注释)
     from models.portion_estimator import PortionEstimator
     from models.nutrition_querier import NutritionQuerier
 
     det = MixedDetector(cfg)
-    # 识别用 LoRA（已有最好单模）；adapter 不存在时退 zero_shot
+    # 识别模式可配（config.yaml mixed.recognizer_mode）：
+    # few-shot 10-shot 在单食物 test 上 Top-1 83.67% 高于 LoRA 81.50%（recognition_baseline.json），
+    # 混合盘组件裁剪图与"居中单食物"分布更接近，故默认切 few-shot；
+    # adapter 缺失时按 few_shot → lora → zero_shot 回退。
+    import random
+    mode = cfg.get("mixed", {}).get("recognizer_mode", "few_shot")
     adapter = os.path.join(ROOT, cfg["recognition"]["lora"]["adapter_dir_50"])
-    mode = "lora" if (os.path.isdir(adapter) and os.listdir(adapter)) else "zero_shot"
-    rec = FoodRecognizer(cfg=cfg, mode=mode)
+    has_adapter = os.path.isdir(adapter) and os.listdir(adapter)
+    if mode == "lora" and not has_adapter:
+        mode = "few_shot"
+    if mode == "few_shot":
+        # 支持集口径与 baseline_eval.py 完全一致：train split 前 k 张/类（无泄漏）
+        random.seed(cfg["recognition"]["few_shot"]["seed"])
+        k = cfg["recognition"]["few_shot"]["k_shot"]
+        tr_paths, tr_labels = gather_from_split(data_dir, "train")
+        sup_paths, sup_labels = [], []
+        for idx in load_classes(data_dir)[1]:
+            cls_paths = [p for p, l in zip(tr_paths, tr_labels) if l == idx][:k]
+            sup_paths += cls_paths
+            sup_labels += [idx] * len(cls_paths)
+        rec = FoodRecognizer(cfg=cfg, mode="few_shot")
+        rec.build_prototypes(sup_paths, sup_labels)
+    else:
+        rec = FoodRecognizer(cfg=cfg, mode=mode)
     print(f"[识别模式] {mode}")
 
     pe = PortionEstimator(cfg=cfg, use_llm=False)
