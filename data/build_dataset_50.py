@@ -14,14 +14,14 @@
     "int(i.split('_')[0])" 解析标签的逻辑依然成立。
   - 同步生成 classes_50.csv（idx,zh,en,orig_id）和各 split 清单 csv。
 
-运行：在项目根目录 `python build_dataset_50.py`
+运行：在项目根目录 `python data/build_dataset_50.py`
 '''
 import os, random, shutil
 from collections import defaultdict
 import pandas as pd
 
-# 原始数据在"高扬"同学的目录下（与本项目同级）
-ROOT = os.path.dirname(os.path.abspath(__file__))
+# 原始数据在"高扬"同学的目录下（与本项目同级）；脚本在 data/ 下，根目录再上一层
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.normpath(os.path.join(ROOT, "..", "高扬", "ChineseFood Net 3", "release_data"))
 OUT = os.path.join(ROOT, "dataset_50cls")
 

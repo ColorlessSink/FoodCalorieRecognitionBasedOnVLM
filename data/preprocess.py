@@ -25,7 +25,7 @@ def run(script):
         raise SystemExit(f"{script} 失败，rc={r.returncode}")
 
 def main():
-    run(os.path.join(ROOT, "build_dataset_50.py"))
+    run(os.path.join(ROOT, "data", "build_dataset_50.py"))
     run(os.path.join(ROOT, "data", "build_nutrition_db.py"))
     run(os.path.join(ROOT, "data", "build_labels.py"))
     run(os.path.join(ROOT, "data", "build_scene_split.py"))

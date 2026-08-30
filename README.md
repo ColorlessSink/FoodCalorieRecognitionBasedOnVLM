@@ -57,7 +57,7 @@ Chinese-CLIP 模型 `OFA-Sys/chinese-clip-vit-base-patch16` 需提前下载到�
 .
 ├── config/config.yaml              配置（模型路径、超参、LLM、识别/分量/智能体参数）
 ├── data/
-│   ├── build_dataset_50.py         构建 50 类数据集（实际在根目录 build_dataset_50.py）
+│   ├── build_dataset_50.py         构建 50 类数据集 → dataset_50cls/
 │   ├── build_nutrition_db.py       营养库（每 100g 热量/三大宏量/密度）
 │   ├── build_labels.py             合成分量/卡路里真值（文件名 hash + 类先验高斯，与估计器解耦）
 │   ├── build_scene_split.py        场景分层（standard/real/challenge）
@@ -106,7 +106,7 @@ Chinese-CLIP 模型 `OFA-Sys/chinese-clip-vit-base-patch16` 需提前下载到�
 确保 `ChineseFood Net 3/release_data/` 原始数据存在：
 
 ```bash
-python build_dataset_50.py        # 50 类数据集 → dataset_50cls/
+python data/build_dataset_50.py    # 50 类数据集 → dataset_50cls/
 python data/build_nutrition_db.py # 营养库 → data/nutrition_db.csv
 python data/build_labels.py       # 合成真值 → dataset_50cls/test_labels.csv
 python data/build_area_stats.py   # 面积比标定 → data/area_ratio_stats.csv
