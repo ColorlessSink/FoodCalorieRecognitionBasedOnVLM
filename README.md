@@ -64,7 +64,8 @@ Chinese-CLIP 模型 `OFA-Sys/chinese-clip-vit-base-patch16` 需提前下载到�
 │   ├── build_area_stats.py         各桶 area_ratio 中位数（分量调制用）
 │   ├── nutrition_db.csv            50 类营养库
 │   ├── area_ratio_stats.csv        分量标定表
-│   └── build_mixed_plates.py       合成混合餐盘（→ dataset_50cls/mixed/）
+│   ├── build_mixed_plates.py       合成混合餐盘（→ dataset_50cls/mixed/）
+│   └── preprocess.py               一键串跑以上全部（含完整性校验）
 ├── models/
 │   ├── food_recognizer.py          模块1：食物识别（零样本/少样本/LoRA）
 │   ├── portion_estimator.py        模块2：分量估计（几何法 v2 相对调制 + CoT 法）
@@ -114,13 +115,16 @@ python data/build_scene_split.py  # 场景分层（自动统计代理）→ data
 python data/build_mixed_plates.py # 混合餐盘 120 盘 → dataset_50cls/mixed/
 ```
 
+以上 6 步也可一键跑：`python data/preprocess.py`（顺序相同，末尾附完整性校验）。
+**注意**：首步会清空重建 `dataset_50cls/`，已有的场景标注进度会丢失，重跑前先备份 `scene_labels_progress.json` 与 `test_scene.csv`。
+
 #### 1b. 三场景人工标注（可选，用于修正自动划分）
 
 ```bash
 python tools/label_scene.py       # 看图按键标注，随时可中断续标
 ```
 
-- 输出与 `build_scene_split.py` 完全对齐（同输入 `test.csv`，同输出列 `split,path,label,scene`、小写场景值、`utf-8-sig`、行序一致，`baseline_eval.py` 直接兼容）；进度实时写 `dataset_50cls/scene_labels_progress.json`；首次导出前自动把自动版备份为 `test_scene_auto.csv`（之后不覆盖备份）；导出时终端打印人工 vs 自动的一致率与 Cohen's kappa；未标满 600 张会拒绝导出。
+输出与 `build_scene_split.py` 完全对齐；进度实时写 `dataset_50cls/scene_labels_progress.json`；首次导出前自动把自动版备份为 `test_scene_auto.csv`（之后不覆盖备份）；未标满 600 张会拒绝导出。
 
 #### 2. 训练 50 类 LoRA（可选，零样本/少样本已达标）
 
@@ -156,7 +160,7 @@ python demo/web_demo.py --no-llm    # 禁用 LLM，纯规则模式
 python demo/web_demo.py --port 7863 # 指定端口（多用户共用机器时）
 ```
 
-上传单食物或混合餐盘照片 + 文字提问，右侧状态面板实时显示本餐累积与个性化目标；"新一餐"按钮清空记录。界面（v3 布局重构，纯 UI 层改动、与 CalorieAgent 管线零接触）：Soft emerald 主题；紧凑 hero（左侧标题+一句话说明，右侧能力徽章横排：50 类识别/混合餐盘/多轮对话/断网可用/LLM 状态）；左列为对话主区——Chatbot 下接统一输入区`[ 菜品照片 | 文字 + 发送/新一餐 ]`，按工作流组织（图片是主要输入占左格、文字补充在右、发送与新一餐同为"动作"归按钮行）；右列为 HTML 状态卡片——热量大数字、蛋白/脂肪/碳水宏量进度条、本餐食物清单 chips、个性化目标徽章，门控反问未收敛时亮起"等待你回答菜名或序号"琥珀色提示。多用户共享服务器部署时若遇 `/tmp/gradio` 权限错误，设置环境变量 `GRADIO_TEMP_DIR=$HOME/gradio_tmp` 再启动。
+上传单食物或混合餐盘照片 + 文字提问，右侧状态面板实时显示本餐累积与个性化目标；"新一餐"按钮清空记录。左列为对话主区，下接统一输入区`[ 菜品照片 | 文字 + 发送/新一餐 ]`，按工作流组织（图片是主要输入占左格、文字补充在右、发送与新一餐同为"动作"归按钮行）。
 
 ## 大作业关键说明
 

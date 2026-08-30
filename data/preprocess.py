@@ -8,8 +8,10 @@
   - 校验每张图的类别标签与所在目录名一致
 
 运行：python data/preprocess.py
-它依次调用 build_dataset_50 / build_nutrition_db / build_labels / build_scene_split，
-并做完整性校验。
+它依次调用 build_dataset_50 / build_nutrition_db / build_labels / build_area_stats /
+build_scene_split / build_mixed_plates，并做完整性校验。
+注意：第一步 build_dataset_50 会清空重建 dataset_50cls/，已有的场景标注进度
+（scene_labels_progress.json / test_scene.csv）会一并丢失，重跑前先备份。
 '''
 import os, sys, subprocess
 import pandas as pd
@@ -28,7 +30,10 @@ def main():
     run(os.path.join(ROOT, "data", "build_dataset_50.py"))
     run(os.path.join(ROOT, "data", "build_nutrition_db.py"))
     run(os.path.join(ROOT, "data", "build_labels.py"))
+    # area_stats 要读 train 图算面积比，mixed 要读 test 真值，都依赖前面三步
+    run(os.path.join(ROOT, "data", "build_area_stats.py"))
     run(os.path.join(ROOT, "data", "build_scene_split.py"))
+    run(os.path.join(ROOT, "data", "build_mixed_plates.py"))
 
     # —— 完整性校验 ——
     print("\n==== 完整性校验 ====")
@@ -52,6 +57,14 @@ def main():
     n_train = sum(1 for _ in open(os.path.join(DATA, "train.csv"))) - 1
     n_test  = sum(1 for _ in open(os.path.join(DATA, "test.csv"))) - 1
     print(f"\ntrain={n_train} (≥1500? {n_train>=1500})  test={n_test} (≥300? {n_test>=300})")
+
+    # area_ratio 标定表 & 混合盘产物
+    ar = pd.read_csv(os.path.join(ROOT, "data", "area_ratio_stats.csv"))
+    print(f"area_ratio_stats: {len(ar)} 桶 {ar['bucket'].tolist()}")
+    mx = pd.read_csv(os.path.join(DATA, "test_mixed.csv"))
+    n_plates = mx["plate"].nunique()
+    gt_kcal = mx.groupby("plate")["calories_kcal_true"].sum()
+    print(f"mixed: {n_plates} 盘 / {len(mx)} 组件 | 盘级真值 {gt_kcal.min():.0f}~{gt_kcal.max():.0f} kcal")
     print("预处理完成。")
 
 if __name__ == "__main__":
