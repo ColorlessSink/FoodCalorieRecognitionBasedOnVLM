@@ -1,6 +1,8 @@
 # 基于 VLM 的食物卡路里识别智能体
 
 > 本仓库为 EagleLab 大作业：基于 VLM 的食物卡路里识别智能体（50 类 + 分量 + 卡路里 + 多轮对话智能体）。识别模块的前身是 20 类中餐 Chinese-CLIP 分类实验（小作业，已归档移除），本仓库只保留大作业完整交付。
+>
+> 远端仓库：https://github.com/ColorlessSink/FoodCalorieRecognitionBasedOnVLM
 
 ## 大作业概述
 

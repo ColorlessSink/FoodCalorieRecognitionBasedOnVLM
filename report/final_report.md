@@ -523,7 +523,7 @@ k 从 1 涨到 10，Top-1 从 57% 提到 83.67%（+26.7 点）；k=10 到 20 只
 
 ---
 
-**附**：完整代码、实验脚本、过程日志、文献综述、失败案例分别见 `models/`、`experiments/`、`report/process_log.md`、`report/literature_review.md`、`report/failure_cases.md`；可视化图表见 `results/figures/`（fig1-7）。
+**附**：完整代码、实验脚本、过程日志、文献综述、失败案例分别见 `models/`、`experiments/`、`report/process_log.md`、`report/literature_review.md`、`report/failure_cases.md`；可视化图表见 `results/figures/`（fig1-7）。本作业全部代码与报告托管在 GitHub 仓库 https://github.com/ColorlessSink/FoodCalorieRecognitionBasedOnVLM 。
 
 交互入口两套：`demo/cli_demo.py`（命令行，支持单图与脚本化用例回归）与 `demo/web_demo.py`（Gradio 6 Web 界面，v3 布局：紧凑 hero、左列 Chatbot 加统一输入区`[图片|文字+发送/新一餐]`、右侧 HTML 状态卡片，含热量大数字/宏量进度条/本餐食物清单/门控追问提示；纯 UI 层改动，与 CLI 复用同一套 CalorieAgent 逻辑）。
 
