@@ -28,7 +28,7 @@
 
 ## 大作业环境
 
-代码在**两套环境**实测通过（`requirements.txt` 顶部注释给出两套环境的完整版本矩阵）：
+代码在**两套环境**实测通过（`requirements.txt` 顶部注释给出两套环境的完整描述）：
 
 **环境 A（实验主环境）**：本地 Windows 11 + Python 3.13 + RTX 4050 Laptop 6GB
 
