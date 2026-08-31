@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 '''
-大作业·第二部分：测试集三场景【人工】标注工具
-====================================================================
+测试集三场景【人工】标注工具
+---
 背景：data/build_scene_split.py 用亮度/饱和度/清晰度/长宽比四个统计量加权打分，
      每类强制 4/4/4 三分——统计量与"人眼觉得难不难认"只有弱相关，划分不准，
-     故改成本工具人工看图标注。
+     故改成本工具人工看图标注
 
 用法：
     python tools/label_scene.py        # 在任意目录执行均可，路径由 __file__ 推算
@@ -21,17 +20,15 @@
 与 build_scene_split.py 的输入/输出对齐：
     输入  dataset_50cls/test.csv（split,path,label）
     输出  dataset_50cls/test_scene.csv：列 split,path,label,scene，
-          scene ∈ {standard,real,challenge}，utf-8-sig 编码，行序与 test.csv 一致。
-    消费端 experiments/baseline_eval.py 按 path（对 \\ / 归一）匹配 scene，完全兼容。
+          scene ∈ {standard,real,challenge}，utf-8-sig 编码，行序与 test.csv 一致
+    消费端 experiments/baseline_eval.py 按 path（对 \\ / 归一）匹配 scene，完全兼容
 
 与自动版的区分：
     · 标注进度实时写入 dataset_50cls/scene_labels_progress.json，可中断续标；
     · 首次导出前把旧的自动版备份为 dataset_50cls/test_scene_auto.csv；
-    · 导出时打印人工 vs 自动的一致率与 Cohen's kappa（可写进报告当消融叙事）。
+    · 导出时打印人工 vs 自动的一致率与 Cohen's kappa（可写进报告当消融叙事）
 '''
-import json
-import os
-import shutil
+import json, os, shutil
 from collections import Counter
 
 import pandas as pd
@@ -110,7 +107,7 @@ class Labeler:
             d = json.load(f)
         valid = set(self.df["path"].astype(str))
         d = {k: v for k, v in d.items() if k in valid and v in SCENES}
-        print(f"[进度] 载入 {len(d)} 条已标注记录")
+        print(f"载入 {len(d)} 条已标注记录")
         return d
 
     def _save_progress(self):
@@ -315,9 +312,9 @@ class Labeler:
                 pe = float(sum(hum_p.get(c, 0.0) * aut_p.get(c, 0.0) for c in SCENES))
                 kappa = (po - pe) / (1 - pe + 1e-9)
                 agree_info = f"\n与自动版一致率 {po:.3f}，Cohen's kappa {kappa:.3f}"
-                print(f"[对比] 与自动版一致率 {po:.3f}，kappa {kappa:.3f}")
+                print(f"与自动版一致率 {po:.3f}，kappa {kappa:.3f}")
             except Exception as exc:
-                print("[对比] 计算失败:", exc)
+                print("对比计算失败:", exc)
 
         messagebox.showinfo(
             "导出成功",

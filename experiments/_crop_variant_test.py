@@ -1,14 +1,12 @@
 '''
-experiments/_crop_variant_test.py — 混合盘组件裁剪图的"背景处理"变体测试（诊断脚本）
-================================================
+混合盘组件裁剪图的"背景处理"变体测试（诊断脚本）
+---
 为什么测：混合盘组件识别 Top-1 78.2% 低于单食物 83.67%，怀疑裁剪图里
 的"白盘背景"是域差来源（LoRA 训练口径是整图食物照片）。
 变体：raw / white / gray / blur —— 检测 mask 之外的像素分别置白/置灰/强模糊。
-每变体单独进程跑（显卡 6GB，同进程连续加载多副本会触发 OSError 1455）。
+每变体单独进程跑（显卡 6GB，同进程连续加载多副本会触发 OSError 1455）
 '''
-import os
-import sys
-import pickle
+import os, sys, pickle
 import numpy as np
 import cv2
 from PIL import Image
@@ -64,7 +62,7 @@ def main():
     preds, confs, topk = rec.recognize(imgs)
     acc = float(np.mean([p == g for p, g in zip(preds, gts)]))
     top5 = float(np.mean([g in [t[0] for t in tk[:5]] for tk, g in zip(topk, gts)]))
-    print(f"[{variant:6s}] mode={mode}  Top-1 {acc*100:.1f}%  Top-5 {top5*100:.1f}%")
+    print(f"{variant:6s} mode={mode}  Top-1 {acc*100:.1f}%  Top-5 {top5*100:.1f}%")
 
 
 if __name__ == "__main__":

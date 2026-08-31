@@ -1,5 +1,6 @@
 '''
-大作业·第二部分：测试集 3 种场景标注（图像统计代理）
+测试集 3 种场景标注脚本（图像统计代理）
+---
 输出 dataset_50cls/test_scene.csv：path,label,scene in {standard,real,challenge}
 '''
 import os, numpy as np, pandas as pd

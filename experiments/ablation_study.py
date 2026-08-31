@@ -1,10 +1,9 @@
 '''
-experiments/ablation_study.py — 消融实验
-================================================
-为什么需要：
-  大作业第四部分要求"≥2 个消融实验"。消融 = 拿掉某设计，看指标掉多少，
-  用来证明每个设计不是摆设而是真有用。本脚本做两个消融，都聚焦分量估计
-  （因为 §2.2 的 v1→v2 演进就是本作业最关键的设计决策，最值得消融验证）。
+消融实验
+---
+背景：消融 = 拿掉某设计，看指标掉多少，用来证明每个设计不是摆设而是真有用。
+本脚本做两个消融，都聚焦分量估计（因为 §2.2 的 v1→v2 演进就是本作业最关键的
+设计决策，最值得消融验证）
 
 消融 A：面积比调制 vs 纯先验锚
   - full    : weight = μ × clamp(ar/med, [0.8,1.3]) × w_geo + μ × (1-w_geo)   ← 当前方法
@@ -13,18 +12,16 @@ experiments/ablation_study.py — 消融实验
   - only_ar : 纯几何 weight = μ × (ar/med)（不锚先验）                          ← 拿掉先验锚
   验证：① 面积比调制带来多少增益（full vs no_ar）；
         ② 钳制防止野值的作用（no_clamp 的离群误差应更大）；
-        ③ 先验锚防止系统性高估的作用（only_ar 应大幅高估，MAE 爆表）。
+        ③ 先验锚防止系统性高估的作用（only_ar 应大幅高估，MAE 爆表）
 
 消融 B：geo_weight 扫描
   - w_geo ∈ {0.0, 0.1, 0.2, 0.3, 0.5}
-  - 验证当前 0.2 是否为甜点，过大过小是否变差。
+  - 验证当前 0.2 是否为甜点，过大过小是否变差
 
 消融 C（识别）：模板的影响已在 baseline_eval 里测过（3 模板对比），
-  这里补一个 few_shot k-shot 扫描 {1,5,10,20}，验证少样本的边际收益。
+  这里补一个 few_shot k-shot 扫描 {1,5,10,20}，验证少样本的边际收益
 '''
-import os
-import sys
-import json
+import os, sys, json
 import numpy as np
 import pandas as pd
 
@@ -41,7 +38,7 @@ def _norm(p):
 
 
 def _load_truth(cfg):
-    """读真值表，键为归一路径。"""
+    # 读真值表，键为归一路径
     lbl = pd.read_csv(os.path.join(ROOT, cfg["project"]["data_dir"], "test_labels.csv"))
     tw = {_norm(p): w for p, w in zip(lbl["path"], lbl["weight_g_true"])}
     tc = {_norm(p): c for p, c in zip(lbl["path"], lbl["calories_kcal_true"])}
@@ -52,7 +49,7 @@ def _load_truth(cfg):
 #  消融 A：分量估计各组件的贡献
 # ============================================================
 def ablation_portion(cfg, paths, labels, names_zh, n=50):
-    """对 4 种变体算 MAE/相对误差/离群率。"""
+    # 对 4 种变体算 MAE/相对误差/离群率
     from data.build_labels import PORTION_PRIOR, bucket_of
     pe = PortionEstimator(cfg=cfg, use_llm=False)
     tw, _ = _load_truth(cfg)
@@ -165,7 +162,7 @@ def ablation_kshot(cfg, paths, labels, names_zh):
         top1 = (preds_t == labels_t).float().mean().item()
         top5 = sum(labels[i] in [t[0] for t in topk[i][:5]] for i in range(len(labels))) / len(labels)
         out[f"k={k}"] = {"top1": round(top1*100, 2), "top5": round(top5*100, 2), "n_support": len(sup_paths)}
-        print(f"  [few_shot] k={k:>2}  Top-1={top1*100:.2f}%  Top-5={top5*100:.2f}%  (支持集 {len(sup_paths)} 张)")
+        print(f"  few_shot k={k:>2}  Top-1={top1*100:.2f}%  Top-5={top5*100:.2f}%  (支持集 {len(sup_paths)} 张)")
     return out
 
 
@@ -174,7 +171,7 @@ def main():
     data_dir = cfg["project"]["data_dir"]
     paths, labels = gather_from_split(data_dir, "test")
     names_zh, _, _ = load_classes(data_dir)
-    print(f"[数据] test={len(paths)} 张 {len(names_zh)} 类\n")
+    print(f"test={len(paths)} 张 {len(names_zh)} 类\n")
 
     print("==== 消融 A：分量估计各组件贡献（n=50）====")
     a = ablation_portion(cfg, paths, labels, names_zh, n=50)
@@ -193,7 +190,7 @@ def main():
     out = {"ablation_A_components": a, "ablation_B_geo_weight": b, "ablation_C_kshot": c}
     with open(os.path.join(ROOT, "results", "ablation_study.json"), "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
-    print(f"\n[完成] results/ablation_study.json")
+    print(f"\n完成 results/ablation_study.json")
 
 
 if __name__ == "__main__":

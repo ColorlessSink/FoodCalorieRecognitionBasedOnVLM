@@ -1,23 +1,17 @@
 '''
-demo/cli_demo.py — 智能体命令行演示
-================================================
-为什么需要：
-  大作业要求"提供完整代码与运行示例"。这里提供一个可交互的 CLI，
-  直接驱动 CalorieAgent：发图/发文本，看多轮对话、共指、个性化、一餐累积。
+智能体命令行演示脚本
+---
+直接驱动 CalorieAgent：发图/发文本，演示多轮对话、共指、个性化、一餐累积
 
 用法：
   python -m demo.cli_demo                  # 交互模式
   python -m demo.cli_demo --image path.jpg # 带图启动一轮
   python -m demo.cli_demo --script cases/dialogue_cases.json  # 跑测试用例
 '''
-import os
-import sys
-import json
-import argparse
+import os, sys, json, argparse
 
-# 以 `python demo/cli_demo.py` 方式启动时，Python 只把 demo/ 加进 sys.path，
-# 找不到根目录下的 models 包。这里把项目根目录（demo 的上一级）补进搜索路径，
-# 使 `python demo/cli_demo.py` 与 `python -m demo.cli_demo` 两种方式都能运行。
+# `python demo/cli_demo.py` 启动时 sys.path 只含 demo/，补上项目根目录，
+# 使其与 `python -m demo.cli_demo` 两种方式都能运行
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -67,14 +61,14 @@ def run_interactive(agent, first_image=None):
 
 
 def run_script(agent, script_path):
-    """跑一组对话测试用例，输出每轮结果。"""
+    # 跑一组对话测试用例，输出每轮结果
     with open(script_path, "r", encoding="utf-8") as f:
         cases = json.load(f)
     print(f"运行 {len(cases)} 个对话用例...\n")
     results = []
     for i, c in enumerate(cases, 1):
-        # 用例间完全隔离：清空一餐记录、对话历史、个性化目标。
-        # 否则上一个用例设的"控糖/减脂"会泄漏到后续用例，污染断言。
+        # 用例间完全隔离：清空一餐记录、对话历史、个性化目标，
+        # 避免上一个用例的设置泄漏到后续用例
         agent.reset_meal()
         agent.history.clear()
         agent.user_goal = None

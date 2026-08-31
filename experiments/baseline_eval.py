@@ -1,9 +1,7 @@
 '''
-experiments/baseline_eval.py — 基线对比与核心指标评估
-================================================
-为什么需要：
-  大作业第四部分要求"基线对比实验（≥2 种 VLM/分量方法）+ 跨场景泛化 +
-  卡路里 MAE"。本脚本一次性产出识别/分量/卡路里三类指标，喂给可视化与报告。
+基线对比与核心指标评估脚本
+---
+一次性产出识别/分量/卡路里三类指标，喂给可视化与报告
 
 产出（写入 results/）：
   1. recognition_baseline.json   : 3 模板 × zero_shot + few_shot + lora_50 的 Top-1/Top-5
@@ -11,10 +9,7 @@ experiments/baseline_eval.py — 基线对比与核心指标评估
   3. portion_calorie_eval.json   : 几何法/CoT 法的 分量 MAE + 卡路里 MAE + 相对误差
   4. scene_eval.json             : standard/real/challenge 三场景下识别与分量表现
 '''
-import os
-import sys
-import json
-import time
+import os, sys, json, time
 import torch
 import numpy as np
 import pandas as pd
@@ -27,7 +22,7 @@ from models.food_recognizer import FoodRecognizer, gather_from_split
 
 
 def eval_recognition(rec, paths, labels):
-    """返回 top1, top5, confs, preds。"""
+    # 返回 top1, top5, confs, preds
     preds, confs, topk_list = rec.recognize(paths)
     labels_t = torch.tensor(labels)
     preds_t = torch.tensor(preds)
@@ -37,13 +32,12 @@ def eval_recognition(rec, paths, labels):
 
 
 def _norm(p):
-    """统一路径键为正斜杠字符串，供跨 CSV 匹配。
-    test.csv/test_scene.csv 用反斜杠，test_labels.csv 用正斜杠，不归一就会全 miss。"""
+    # 统一路径键为正斜杠字符串，供跨 CSV 匹配（不归一就会全 miss）
     return str(p).replace("\\", "/")
 
 
 def _stats(errs, rels, cal_errs, cal_rels):
-    """统一的误差统计。errs/rels/cal_errs/cal_rels 为 list。"""
+    # 统一的误差统计
     errs, rels = np.array(errs), np.array(rels)
     cal_errs, cal_rels = np.array(cal_errs), np.array(cal_rels)
     return {
@@ -58,7 +52,7 @@ def _stats(errs, rels, cal_errs, cal_rels):
 
 
 def run_recognition_baselines(cfg, paths, labels, names_zh):
-    """3 种模板的零样本对比 + few_shot + lora_50。"""
+    # 3 种模板的零样本对比 + few_shot + lora_50
     results = []
     templates = cfg["recognition"]["templates_for_compare"]
     rec = None
@@ -74,10 +68,9 @@ def run_recognition_baselines(cfg, paths, labels, names_zh):
             "top1": round(top1*100, 2), "top5": round(top5*100, 2),
             "mean_conf": round(float(np.mean(confs)), 3), "seconds": round(dt, 1),
         })
-        print(f"  [zero_shot] {tpl}  Top-1={top1*100:.2f}%  Top-5={top5*100:.2f}%  ({dt:.1f}s)")
+        print(f"  zero_shot {tpl}  Top-1={top1*100:.2f}%  Top-5={top5*100:.2f}%  ({dt:.1f}s)")
 
-    # few_shot 10-shot
-    # 方法学洁净：支持集从 train split 取前 k 张/类，避免用测试图当支持（数据泄漏）。
+    # few_shot 10-shot（支持集从 train split 取前 k 张/类，避免数据泄漏）
     import random
     random.seed(cfg["recognition"]["few_shot"]["seed"])
     k = cfg["recognition"]["few_shot"]["k_shot"]
@@ -93,7 +86,7 @@ def run_recognition_baselines(cfg, paths, labels, names_zh):
     results.append({"method": "few_shot", "k_shot": k,
                     "top1": round(top1*100, 2), "top5": round(top5*100, 2),
                     "mean_conf": round(float(np.mean(confs)), 3)})
-    print(f"  [few_shot]  k={k}  Top-1={top1*100:.2f}%  Top-5={top5*100:.2f}%")
+    print(f"  few_shot  k={k}  Top-1={top1*100:.2f}%  Top-5={top5*100:.2f}%")
 
     # lora 50（adapter 存在才评）
     adapter_dir = os.path.join(ROOT, cfg["recognition"]["lora"]["adapter_dir_50"])
@@ -103,14 +96,14 @@ def run_recognition_baselines(cfg, paths, labels, names_zh):
         results.append({"method": "lora_50",
                         "top1": round(top1*100, 2), "top5": round(top5*100, 2),
                         "mean_conf": round(float(np.mean(confs)), 3)})
-        print(f"  [lora_50]   Top-1={top1*100:.2f}%  Top-5={top5*100:.2f}%")
+        print(f"  lora_50   Top-1={top1*100:.2f}%  Top-5={top5*100:.2f}%")
     else:
-        print("  [lora_50] 跳过：adapter 未训练（先跑 experiments/train_lora_50.py）")
+        print("  lora_50   跳过：adapter 未训练（先跑 experiments/train_lora_50.py）")
     return results
 
 
 def run_portion_calorie_eval(cfg, paths, labels, names_zh, n=30):
-    """几何法 vs CoT 法的分量/卡路里 MAE。CoT 慢，只抽 n 张。"""
+    # 几何法 vs CoT 法的分量/卡路里 MAE。CoT 慢，只抽 n 张
     from models.portion_estimator import PortionEstimator
     from models.nutrition_querier import NutritionQuerier
 
@@ -129,7 +122,7 @@ def run_portion_calorie_eval(cfg, paths, labels, names_zh, n=30):
     sample_idx = list(range(min(n, len(paths))))
     for i in sample_idx:
         p, l = paths[i], labels[i]
-        # 路径键归一：test.csv 是反斜杠，test_labels.csv 是正斜杠
+        # 路径键归一：test.csv 反斜杠，test_labels.csv 正斜杠
         rel = _norm(os.path.relpath(p, os.path.join(ROOT, cfg["project"]["data_dir"])))
         t_w = truth_w.get(rel)
         t_c = truth_c.get(rel)
@@ -161,7 +154,7 @@ def run_portion_calorie_eval(cfg, paths, labels, names_zh, n=30):
 
 
 def run_scene_eval(cfg, paths, labels, names_zh):
-    """三场景下的识别 Top-1 + 几何法分量 MAE。"""
+    # 三场景下的识别 Top-1 + 几何法分量 MAE
     scene_df = pd.read_csv(os.path.join(ROOT, cfg["project"]["data_dir"], "test_scene.csv"))
     scene_map = {_norm(p): s for p, s in zip(scene_df["path"], scene_df["scene"])}
 
@@ -201,7 +194,7 @@ def run_scene_eval(cfg, paths, labels, names_zh):
             "top5": round(top5*100, 2),
             "portion_mae_g": round(float(errs.mean()), 1),
         }
-        print(f"  [{sc}] n={len(idxs)} top1={top1*100:.2f}% portion_mae={errs.mean():.1f}g")
+        print(f"  {sc} n={len(idxs)} top1={top1*100:.2f}% portion_mae={errs.mean():.1f}g")
     return out
 
 
@@ -210,10 +203,10 @@ def main():
     data_dir = cfg["project"]["data_dir"]
     paths, labels = gather_from_split(data_dir, "test")
     names_zh, _, _ = load_classes(data_dir)
-    print(f"[数据] {data_dir} test={len(paths)} 张 {len(names_zh)} 类\n")
+    print(f"数据：{data_dir} test={len(paths)} 张 {len(names_zh)} 类\n")
 
-    # ---- 1. 识别基线（3 模板 + few_shot + lora_50）----
-    print("==== 1. 识别基线对比 ====")
+    # 1. 识别基线（3 模板 + few_shot + lora_50）
+    print("========== 1. 识别基线对比 ==========")
     rec_results = run_recognition_baselines(cfg, paths, labels, names_zh)
     with open(os.path.join(ROOT, "results", "recognition_baseline.json"), "w", encoding="utf-8") as f:
         json.dump(rec_results, f, ensure_ascii=False, indent=2)
@@ -222,8 +215,8 @@ def main():
     with open(os.path.join(ROOT, "results", "method_compare.json"), "w", encoding="utf-8") as f:
         json.dump(method_compare, f, ensure_ascii=False, indent=2)
 
-    # ---- 2. 分量/卡路里 MAE（几何 vs CoT）----
-    print("\n==== 2. 分量/卡路里评估（几何 vs CoT）====")
+    # 2. 分量/卡路里 MAE（几何 vs CoT）
+    print("\n========== 2. 分量/卡路里评估（几何 vs CoT）==========")
     n_cot = 30
     pc = run_portion_calorie_eval(cfg, paths, labels, names_zh, n=n_cot)
     with open(os.path.join(ROOT, "results", "portion_calorie_eval.json"), "w", encoding="utf-8") as f:
@@ -231,13 +224,13 @@ def main():
     print(f"  几何法 MAE={pc['geometric']['mae_g']}g  卡路里MAE={pc['geometric']['calorie_mae_kcal']}kcal")
     print(f"  CoT法  MAE={pc['cot_llm']['mae_g']}g  卡路里MAE={pc['cot_llm']['calorie_mae_kcal']}kcal")
 
-    # ---- 3. 跨场景 ----
-    print("\n==== 3. 跨场景泛化 ====")
+    # 3. 跨场景
+    print("\n========== 3. 跨场景泛化 ==========")
     scene = run_scene_eval(cfg, paths, labels, names_zh)
     with open(os.path.join(ROOT, "results", "scene_eval.json"), "w", encoding="utf-8") as f:
         json.dump(scene, f, ensure_ascii=False, indent=2)
 
-    print("\n[完成] 全部结果已写入 results/")
+    print("\n全部结果已写入 results/")
 
 
 if __name__ == "__main__":

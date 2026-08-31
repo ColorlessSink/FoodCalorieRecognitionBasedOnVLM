@@ -60,7 +60,7 @@ Pouladzadeh 等(2016)[20] 用信用卡等已知尺寸参考物标定像素-厘�
 
 #### 多视角/三维重建
 
-Nutrition5k[5] 的工业流水线是这条路线的代表：每道菜从多角度拍 2~4 张 RGB-D 图，做点云配准重建三维网格，再体积积分乘密度得重量。精度最高（官方报告重量相对误差个位数百分比），采集成本也最高——旋转台、深度相机、配准算法，用户日常拍摄不可行。移动端的变体是"视频多帧"：绕菜转半圈拍视频，SfM 选关键帧重建。本作业的评估集为静态单图，无法采用；但其"体积=面积×等效厚度"的换算思想被吸收进了类先验——每类食物的厚度/密度差异 encode 进先验均值 μ，等价于把三维重建学到的平均形状压缩成一个标量。
+Nutrition5k[5] 的工业流水线是这条路线的代表：每道菜从多角度拍 2~4 张 RGB-D 图，做点云配准重建三维网格，再体积积分乘密度得重量。精度最高（官方报告重量相对误差个位数百分比），采集成本也最高：旋转台、深度相机、配准算法一样不少，用户日常拍摄不可行。移动端的变体是"视频多帧"：绕菜转半圈拍视频，SfM 选关键帧重建。本作业的评估集为静态单图，无法采用；但其"体积=面积×等效厚度"的换算思想被吸收进了类先验：每类食物的厚度/密度差异 encode 进先验均值 μ，等价于把三维重建学到的平均形状压缩成一个标量。
 
 #### 纯 2D 视觉映射
 
@@ -84,7 +84,7 @@ Kirillov 等(2023)[6] 的 SAM（Segment Anything）用 11M 图、1B 掩膜训练
 
 ### 营养成分与卡路里换算
 
-分量之后是"克 → 卡"的换算，文献里有两条路。
+分量之后是"克 到 卡"的换算，文献里有两条路。
 
 第一条是**类别+成分表查询**：先用识别模块出类别，再查 USDA FoodData Central[30] 或中国食物成分表（杨月欣等, 2009[31]）得到每 100g 热量与宏量，乘估计分量即得卡路里。该路线可解释、可审计（每个数都能溯源到成分表条目），错误只来自识别与分量两环。第二条是**端到端回归**：Nutrition5k[5] 直接从图像（含 RGB-D 深度通道）回归热量/脂肪/蛋白/碳水，免查表但黑箱。
 
@@ -162,15 +162,17 @@ LLM 进健康咨询的标志是 Google 的 AMIE（Tu 等, 2024, Nature 系列报
 
 ## 本作业的选型依据与方法论定位
 
-综合上述，本作业在五个方向上的选型可定位如下：
+综合前面的梳理，五个方向的选型可以串成一条线。
 
-| 方向 | 本作业选型 | 文献依据 | 理由 |
-|------|-----------|---------|------|
-| 食物识别 | Chinese-CLIP 零样本/少样本/LoRA 三模式 | CLIP[1]、Chinese-CLIP[3]、LoRA[2]、原型网络[24] | 零样本免训练、少样本快适配、LoRA 小数据稳，三模式可消融对比 |
-| 分量估计 | 纯 2D 相对调制+类先验锚（路线四） | 深度[27][28][29]、参考物[20]、多视角[5] 三路线的对照后放弃 | 合成数据无深度结构、无参考物、单图静态，2D 相对调制是当前约束下唯一可标定路线 |
-| 食物分割 | GrabCut[8]+谱残差[9] | 未用 SAM[6] 因显存受限 | 面积比作相对量够用，轻量 |
-| 营养换算 | 类别→成分表→×分量（可溯源） | USDA[30]、中国食物成分表[31]、对照 Nutrition5k[5] 端到端回归 | 数值可拆解可审计，规避 VLM 数值推理弱点[32][33] |
-| 智能体 | 感知本地+生成 LLM+规则兜底 | ReAct[18]、Toolformer[40]、Generative Agents[39]、GPT-4V 评测[32][33][34] | 受限 LLM 下三层解耦最稳；记忆做一餐级裁剪防幻觉 |
+食物识别选 Chinese-CLIP 的零样本/少样本/LoRA 三模式，依据是 CLIP[1] 与 Chinese-CLIP[3] 的对比学习范式、原型网络[24] 的少样本思想与 LoRA[2] 的低秩微调：零样本免训练、少样本快适配、LoRA 在小数据上稳，三种模式还能互为消融对照。
+
+分量估计走纯 2D 相对调制加类先验锚，即四条路线中的第四条，这是对照过另外三条之后的放弃：深度估计[27][28][29] 受限于合成数据无真实深度结构，参考物标定[20] 受限于图中无参考物，多视角重建[5] 受限于评估集是静态单图，相对调制是当前约束下唯一可标定的路线。
+
+食物分割用 GrabCut[8] 加谱残差[9] 的轻量组合而非 SAM[6]，显存是一方面原因，更根本的是本作业只需要面积比这个相对量，轻量方案已经够用。
+
+营养换算坚持"类别→成分表→×分量"的可溯源链条（USDA[30]、中国食物成分表[31]），放弃 Nutrition5k[5] 式的端到端回归，为的是每个数值可拆解、可审计，也顺带规避了 VLM 数值推理弱的短板[32][33]。
+
+智能体采用"感知本地 + 生成 LLM + 规则兜底"的三层解耦，参考了 ReAct[18] 与 Toolformer[40] 的工具调用思想、Generative Agents[39] 的记忆机制，以及 GPT-4V 评测[32][33][34] 揭示的能力边界；记忆按一餐级裁剪，防止长记忆放大幻觉。
 
 本作业的方法论贡献在于：在"中餐数据集无分量标注 + 代理 LLM 视觉不可用"双重约束下，提出了一套可落地、可消融、诚实的食物卡路里识别智能体方案。具体而言，是以类先验为锚的相对调制分量估计（解决无参考物）、本地视觉加远程文本的解耦智能体（解决 LLM 视觉缺失）、合成真值与估计器解耦的评估口径（解决无标注评估）。
 
@@ -242,27 +244,25 @@ LLM 进健康咨询的标志是 Google 的 AMIE（Tu 等, 2024, Nature 系列报
 
 [32] Attipa, C., Chrysanthopoulou, K., Michalopoulou, M., et al. GPT-4 and Multimodal LLMs in Food Energy Estimation: A Pilot Study. Nutrients (MDPI), 2024.
 
-[33] Ye, Z., Xu, G., Li, Z., et al. Evaluation of GPT-4V/Gemini Advanced multimodal models for food portion size estimation. arXiv:2409.14003, 2024.
+[33] Kim, S., Kim, S., Yim, J. et al. 教育类多模态大模型食物识别评测研究. Nutrients / Molecules (MDPI), 2024.（多模态 LLM 营养估计综述性评测，MDPI 系列）
 
-[34] Kim, S., Kim, S., Yim, J. et al. 教育类多模态大模型食物识别评测研究. Nutrients / Molecules (MDPI), 2024.（多模态 LLM 营养估计综述性评测，MDPI 系列）
+[34] Rohrbach, A., Hendricks, L. A., Burns, K., et al. Object Hallucination in Image Captioning. **EMNLP 2018**.
 
-[35] Rohrbach, A., Hendricks, L. A., Burns, K., et al. Object Hallucination in Image Captioning. **EMNLP 2018**.
+[35] Li, Y., Du, Y., Zhou, K., et al. Evaluating Object Hallucination in Large Vision-Language Models (POPE). **EMNLP 2023**.
 
-[36] Li, Y., Du, Y., Zhou, K., et al. Evaluating Object Hallucination in Large Vision-Language Models (POPE). **EMNLP 2023**.
+[36] Tu, T., Palepu, A., Schaekermann, M., et al. Towards Conversational Diagnostic AI (AMIE). arXiv:2401.05654, 2024 / Nature 系列报道.
 
-[37] Tu, T., Palepu, A., Schaekermann, M., et al. Towards Conversational Diagnostic AI (AMIE). arXiv:2401.05654, 2024 / Nature 系列报道.
+[37] Zhang, K., Liu, X., Wang, X., et al. From Pixels to Health: A Survey on Dietary Assessment via Image Analysis and Artificial Intelligence. arXiv:2403.xxxxx, 2024.
 
-[38] Zhang, K., Liu, X., Wang, X., et al. From Pixels to Health: A Survey on Dietary Assessment via Image Analysis and Artificial Intelligence. arXiv:2403.xxxxx, 2024.
+[38] Park, J. S., O'Brien, J., Cai, C. J., et al. Generative Agents: Interactive Simulacra of Human Behavior. **UIST 2023**.
 
-[39] Park, J. S., O'Brien, J., Cai, C. J., et al. Generative Agents: Interactive Simulacra of Human Behavior. **UIST 2023**.
-
-[40] Schick, T., Dwivedi-Yu, J., Dessì, R., et al. Toolformer: Language Models Can Teach Themselves to Use Tools. **NeurIPS 2023** (顶会).
+[39] Schick, T., Dwivedi-Yu, J., Dessì, R., et al. Toolformer: Language Models Can Teach Themselves to Use Tools. **NeurIPS 2023** (顶会).
 
 ---
 
 **统计**：
 
-- 共 40 篇。近 3 年（2022–2025）：[2][3][6][7][10][11][12][18][19][27(TPAMI 版)][28][29][32][33][34][36][37][38][39][40] 等 21 篇；
+- 共 39 篇。近 3 年（2022–2025）：[2][3][6][7][10][11][12][18][19][27(TPAMI 版)][28][29][32][33][34][36][37][38][39][40] 等 21 篇；
 
 - 顶会顶刊：ICML×2、ICLR×2、NeurIPS×7、CVPR×5、ICCV×5、ECCV×2、TPAMI×2、TMM×1、TOG×1、ACM Computing Surveys×1、EMNLP×2、UIST×1、Nature 系列报道×1，合计 32 篇；
 

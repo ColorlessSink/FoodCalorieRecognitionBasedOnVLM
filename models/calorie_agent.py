@@ -1,30 +1,28 @@
 '''
-models/calorie_agent.py — 智能体交互模块（模块4）
-================================================
-为什么需要、为什么这么设计：
-  前三个模块（识别/分量/营养）是"无状态的算子"，给一张图吐一个 JSON。
-  大作业模块4 要求"智能体具备多轮对话、上下文记忆、共指消解、个性化能力"，
-  并要求"≥2 个创新点"。本模块把这些"有状态的对话能力"包成一个 Agent：
+智能体交互模块（模块4）
+---
+前三个模块（识别/分量/营养）是"无状态的算子"，给一张图吐一个 JSON。
+本模块把"有状态的对话能力"包成一个 Agent：
 
-  职责：
-    - 编排 pipeline：识别 → 分量 → 营养（复用模块1/2/3）
-    - 多轮上下文记忆：保留最近 max_history 轮，喂给 LLM 做连贯对话
-    - 共指消解：把"它/这个/再来一份/刚才那个菜"解析到上下文里最近一次食物
-    - 个性化：按用户目标（减脂/增肌/维持/控糖）调整建议口径与宏量分配
-    - 一餐累积：跨轮累加已报过的食物，支持"今天总共吃了多少"
-    - 追问闭环（v2 新增）：低置信反问后记住 pending 状态，用户答菜名/序号
-      即收敛入账；分量纠正（"只吃了一半"）按比例改账，不再答非所问
+职责：
+  - 编排 pipeline：识别 → 分量 → 营养（复用模块1/2/3）
+  - 多轮上下文记忆：保留最近 max_history 轮，喂给 LLM 做连贯对话
+  - 共指消解：把"它/这个/再来一份/刚才那个菜"解析到上下文里最近一次食物
+  - 个性化：按用户目标（减脂/增肌/维持/控糖）调整建议口径与宏量分配
+  - 一餐累积：跨轮累加已报过的食物，支持"今天总共吃了多少"
+  - 追问闭环（v2 新增）：低置信反问后记住 pending 状态，用户答菜名/序号
+    即收敛入账；分量纠正（"只吃了一半"）按比例改账，不再答非所问
 
-  创新点（≥2，见 process_log.md §2.4）：
-    ① 置信度门控：识别置信度低于阈值时，主动反问"是不是 XX？"而非硬猜，
-       把 CLIP 的不确定性显式带进对话，避免低置信错误链式污染下游分量/营养。
-    ② 共指+一餐状态机：用"最近食物栈 + 累积宏量"做轻量状态机，让"再来一份/
-       它有多少热量/今天总共"这类省略指代能被正确解析，无需 LLM 记忆全历史。
-    ③ 个性化目标适配：同一份食物，减脂用户提示"建议分次少油"，增肌用户提示
-       "蛋白占比可，碳水中上"，把单一识别结果因人而异地解释。
+创新点（≥2，见 process_log.md §2.4）：
+  ① 置信度门控：识别置信度低于阈值时，主动反问"是不是 XX？"而非硬猜，
+     把 CLIP 的不确定性显式带进对话，避免低置信错误链式污染下游分量/营养
+  ② 共指+一餐状态机：用"最近食物栈 + 累积宏量"做轻量状态机，让"再来一份/
+     它有多少热量/今天总共"这类省略指代能被正确解析，无需 LLM 记忆全历史
+  ③ 个性化目标适配：同一份食物，减脂用户提示"建议分次少油"，增肌用户提示
+     "蛋白占比可，碳水中上"，把单一识别结果因人而异地解释
 
-  LLM 用法：glm-5.2 只做"自然语言生成"（把结构化结果+对话历史组织成回复），
-  关键逻辑（共指/累积/门控）用确定性规则做，LLM 失败时规则兜底仍能对话。
+LLM 用法：glm-5.2 只做"自然语言生成"（把结构化结果+对话历史组织成回复），
+关键逻辑（共指/累积/门控）用确定性规则做，LLM 失败时规则兜底仍能对话
 '''
 import os
 import json
@@ -104,11 +102,8 @@ class CalorieAgent:
     #  对话主入口
     # ============================================================
     def chat(self, user_input, image_path=None):
-        """
-        user_input : 用户文本
-        image_path: 可选，本次带图
-        返回: {"reply": str, "state": {...}, "turn": int}
-        """
+        # user_input: 用户文本；image_path 可选，本次带图
+        # 返回 {"reply": str, "state": {...}, "turn": int}
         self.history.append({"role": "user", "content": user_input})
         # 门控追问闭环：上一轮 agent 反问"是不是 XX？"且用户还没回答时，
         # 本轮输入先尝试当"澄清回答"解析（菜名/序号/"就是X"）。
@@ -255,9 +250,9 @@ class CalorieAgent:
         return base
 
     def _handle_mixed_plate(self, img, regions):
-        """混合餐盘：逐区域 crop → 识别 → 几何分量 → 营养，盘级求和。
-        分量口径与 experiments/mixed_eval.py 完全一致（区域占盘比例归一 +
-        类先验调制），保证对话里报的数与评估报告同源。"""
+        # 混合餐盘：逐区域 crop → 识别 → 几何分量 → 营养，盘级求和
+        # 分量口径与 experiments/mixed_eval.py 完全一致（区域占盘比例归一 +
+        # 类先验调制），保证对话里报的数与评估报告同源
         import cv2
         from PIL import Image
         from models.mixed_detector import MixedDetector
@@ -309,12 +304,11 @@ class CalorieAgent:
         return reply
 
     def _try_resolve_clarification(self, text):
-        """把用户的回答解析成待澄清 top-3 之一（或 50 类里的菜名）。
-        返回 (idx, name)；解析不出返回 None。支持：
-          ① 序号回答："1" "2" "第三个"
-          ② 菜名回答："宫保鸡丁" "是宫保鸡丁" "就是那个宫保鸡丁"
-          ③ 候选名模糊命中："宫保" → 宫保鸡丁
-        """
+        # 把用户的回答解析成待澄清 top-3 之一（或 50 类里的菜名）
+        # 返回 (idx, name)；解析不出返回 None。支持：
+        #   ① 序号回答："1" "2" "第三个"
+        #   ② 菜名回答："宫保鸡丁" "是宫保鸡丁" "就是那个宫保鸡丁"
+        #   ③ 候选名模糊命中："宫保" → 宫保鸡丁
         t = text.strip()
         if not t:
             return None
@@ -335,7 +329,7 @@ class CalorieAgent:
         return None
 
     def _apply_clarification(self, resolved):
-        """用户澄清后：按选定类走完整"分量→营养→入账"，追问闭环收敛。"""
+        # 用户澄清后：按选定类走完整"分量→营养→入账"，追问闭环收敛
         self.pending_clarification = None
         idx, name = resolved
         # 优先用反问时的原图重走分量（口径与首轮识别一致）
@@ -351,7 +345,7 @@ class CalorieAgent:
         return self._compose_recognize_reply(nres, 1.0)
 
     def _handle_again(self, text):
-        """共指：再来一份 → 复用最近食物，但分量可含倍数。"""
+        # 共指：再来一份 → 复用最近食物，但分量可含倍数
         if not self.last_food:
             return "你还没告诉过我你吃了什么呢，先发张照片吧。"
         # 解析倍数："再来两份" "再来3份"。
@@ -381,8 +375,8 @@ class CalorieAgent:
                 f"热量 {nres['kcal']:.0f} kcal。")
 
     def _handle_portion_correct(self, text):
-        """分量纠正：'半份/一半/剩一半' → 对最近食物按比例重算并改账。
-        与菜名纠正（_handle_correct）互补：那个改'是什么'，这个改'吃了多少'。"""
+        # 分量纠正：'半份/一半/剩一半' → 对最近食物按比例重算并改账
+        # 与菜名纠正（_handle_correct）互补：那个改'是什么'，这个改'吃了多少'
         if not self.last_food:
             return "目前还没有记录，先发张照片，再告诉我要减多少。"
         f = self.last_food
@@ -417,7 +411,7 @@ class CalorieAgent:
                 f"热量约 {nres['kcal']:.0f} kcal。")
 
     def _handle_correct(self, text):
-        """纠正：从文本里抠菜名，查库改 last_food 的类别。"""
+        # 纠正：从文本里抠菜名，查库改 last_food 的类别
         # 去掉前缀，取可能的菜名
         cleaned = re.sub(r"^(不是|错了|其实是|应该是|我吃的是|这是)[，, ]*", "", text)
         # 在类别表里模糊匹配
@@ -540,7 +534,7 @@ class CalorieAgent:
                 f"\n\n当前上下文：\n{ctx_str}")
 
     def _llm_match_class(self, text):
-        """让 LLM 把用户口语菜名映射到 50 类之一。失败返回 None。"""
+        # 让 LLM 把用户口语菜名映射到 50 类之一。失败返回 None
         if not self.use_llm:
             return None
         names = self.recognizer.names_zh
@@ -567,8 +561,8 @@ class CalorieAgent:
         }
 
     def reset_meal(self):
-        """开始新一餐：清空一餐记录与共指栈，但保留个性化目标
-        （用户说"新一餐"是想换一道菜继续吃，不是想换减肥目标）。"""
+        # 开始新一餐：清空一餐记录与共指栈，但保留个性化目标
+        # （用户说"新一餐"是想换一道菜继续吃，不是想换减肥目标）
         self.meal_items = []
         self.last_food = None
         self.pending_clarification = None

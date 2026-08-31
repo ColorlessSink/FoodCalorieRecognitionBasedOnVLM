@@ -1,20 +1,20 @@
 {
   "standard": {
-    "n": 200,
-    "top1": 77.0,
-    "top5": 96.0,
-    "portion_mae_g": 24.4
+    "n": 407,
+    "top1": 78.38,
+    "top5": 97.05,
+    "portion_mae_g": 24.0
   },
   "real": {
-    "n": 200,
-    "top1": 79.5,
-    "top5": 97.5,
-    "portion_mae_g": 25.3
+    "n": 142,
+    "top1": 79.58,
+    "top5": 96.48,
+    "portion_mae_g": 25.1
   },
   "challenge": {
-    "n": 200,
-    "top1": 78.5,
-    "top5": 97.5,
-    "portion_mae_g": 24.4
+    "n": 51,
+    "top1": 74.51,
+    "top5": 98.04,
+    "portion_mae_g": 27.2
   }
 }

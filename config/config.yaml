@@ -30,9 +30,11 @@ model:
 #       所有调用必须有规则兜底。
 llm:
   enabled: true
-  base_url: "https://clusters.zju.edu.cn/newapi"   # 来自 ANTHROPIC_BASE_URL
-  model: "glm-5.2"                                  # 来自 ANTHROPIC_MODEL
-  token_env: "ANTHROPIC_AUTH_TOKEN"                 # 从环境变量取，不写死
+  # 以下三项填写环境变量名，由 models/llm_client.py 运行时读取实际值。
+  # 实际请求地址为 ${ANTHROPIC_BASE_URL}/v1/chat/completions。
+  base_url: "ANTHROPIC_BASE_URL"
+  model: "ANTHROPIC_MODEL"
+  token_env: "ANTHROPIC_AUTH_TOKEN"
   timeout: 30
   max_tokens: 1024
   temperature: 0.3
@@ -86,6 +88,11 @@ mixed:
   # 组件识别模式：few_shot 在单食物 test 上 Top-1 83.67% > LoRA 81.50%，
   # 组件裁剪图更接近"居中单食物"分布，故默认 few_shot（见 process_log.md 混合盘改进条目）
   recognizer_mode: "few_shot"          # few_shot | lora | zero_shot
+  # 组件支持集张数：与单食物 few_shot.k_shot 分开配。组件裁剪图存在域移位
+  # （圆片贴白盘 vs 满图），是比单食物更难的任务，支持集加倍：
+  # 120 盘实测组件 Top-1 80.3%(10 张) → 83.7%(20 张)。单食物评估
+  # （baseline_eval.py）仍用 few_shot.k_shot=10，口径不变。
+  support_k_shot: 20
 
 # 智能体模块（模块4）
 agent:

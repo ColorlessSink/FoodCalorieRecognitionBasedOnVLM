@@ -6,6 +6,16 @@
 
 ---
 
+- 分量数据标注问题：诚实声明  ok
+- 改食物分割模型：放弃
+- LLM到底干了什么  ok
+- 数据采集
+- 项目整理上传，加上github链接
+
+
+
+
+
 ## P0 · 必做（影响验收）
 
 ### 1. 自采真实食物照片 ≥100 张（数据集"真实图像"要求）
@@ -33,7 +43,7 @@
   5. 演示（2 分钟：`python demo/web_demo.py --no-llm` 现场跑单食物 + 混合盘 + "再来一份"共指）；
   6. 失败案例与改进（1 页：面点家族混淆 + "自信地错"）。
 - **演示预案**：提前把 web_demo 起好、图片放桌面；断网用 `--no-llm` 规则模式保底（流水线不依赖网络是设计卖点）。
-- **必背数字**：Top-1 78.33/81.50/83.67；分量 MAE 全量 24-25g；混合盘 oracle 63.9 / e2e 110.9（组件识别已切 few_shot + soft-kcal 概率加权，从 120.9 改善而来）；18 用例 50 轮 100%。
+- **必背数字**：Top-1 78.33/81.50/83.67；分量 MAE 全量 24-25g；混合盘 oracle 74.0 / e2e 107.8（中位 79.2，v1 120.9→v2 110.9→v3 107.8，v3 为随机化数据口径；组件识别 few_shot 20-shot + TTA + 原型域增强 + 门控 soft-kcal，Top-1 83.7%，检测召回 100%）；18 用例 50 轮 100%。
 
 ### 4. GPT-4V / 其他多模态 API 基线实测（"≥2 种 VLM 基线"的补强）
 
@@ -46,7 +56,7 @@
 
 ### 5. 确认最终数字与文件一致性（交前检查）
 
-- 交前把 `README.md`、`report/final_report.md` §4.6、`report/process_log.md` §3.8 三处指标汇总表对一遍（现已统一为：18 用例 50 轮、文献综述 6019 字 40 引、混合盘 oracle 63.9/e2e 110.9）。
+- 交前把 `README.md`、`report/final_report.md` §4.6、`report/process_log.md` §3.8 三处指标汇总表对一遍（现已统一为：18 用例 50 轮、文献综述 6019 字 40 引、混合盘 oracle 74.0/e2e 107.8，v3 随机化数据口径）。
 - 确认 `results/` 下 JSON 与表格数字一致（尤其 `mixed_plate_eval.json`、`dialogue_test_results.json` 18 用例）。
 - 若老师要求 PDF/Word 版报告，把四个 md 导出（Typora/VS Code 插件均可）。
 
@@ -54,14 +64,13 @@
 
 ## P1 · 显著加分
 
-### 6. 混合餐盘端到端 MAE 110.9 → ≤100（唯一未硬达标指标）
+### 6. 混合餐盘端到端 MAE 107.8 → ≤100（唯一未硬达标指标）
 
-- **现状**：oracle 63.9 达标、e2e 110.9 超预算 10.9（已从 120.9 改善：组件识别切 few_shot + soft-kcal top-5 概率加权，代价是组件 Top-1 82.3%→78.1%，但热量误差更小——分类准确率与热量误差背离，见 process_log 难点 9b）。分层定位显示瓶颈仍在组件识别（51/288 错菜），不在检测（召回 100%）或分量。
+- **现状**：oracle 74.0 达标（分量+营养环节健康），e2e 107.8 超预算 7.8（三轮迭代：v1 120.9 → v2 110.9 → v3 107.8，v3 已换更难的随机化数据：随机布局/盘径/外观，非同分布拷贝）。组件识别已上四项增强——few_shot 20-shot（k=10 80.3%→k=20 83.7%）、裁剪边距 TTA 6 视图（78.0→79.7%）、原型域增强（114.8→110.9）、门控 soft-kcal top-2（112.9→107.8）——组件 Top-1 83.7%。分层定位显示瓶颈仍在组件识别（49/300 错菜，集中在语义/外观近邻对：冰淇淋↔双皮奶、炒面↔鱼香肉丝、包子↔小笼包），不在检测（119/120、召回 100%）或分量。已试过并排除的方向：LoRA 组件微调（129.4）、few+LoRA 集成（117.9）、文本概率融合、mod=盘占比面积调制（121.0）。
 - **最短路径**（预计半天）：
-  1. 对组件裁剪图做**轻度增强推理**（如 padding 后再送识别，缓解贴片边缘伪影）；
-  2. 细粒度子分类器（面点家族单独训）或 Grounding DINO 开集检测（见 final_report 改进方向 4）；
-  3. 若还不达标，接受现状并在答辩主动讲分层分析——"oracle 达标证明流水线健康，e2e 差距全部来自识别，且 soft-kcal 已把不确定性摊进期望"本身是加分的工程判断。
-- 服务器上跑：`cd ~/eaglelab && python3 experiments/mixed_eval.py`（约 5 分钟，3090；模式在 `config/config.yaml` 的 `mixed.recognizer_mode` 切换）。
+  1. 细粒度子分类器（面点家族/虾蟹家族单独训）或 Grounding DINO 开集检测（见 final_report 改进方向 4）；
+  2. 若还不达标，接受现状并在答辩主动讲分层分析——"oracle 74.0 达标证明流水线健康，e2e 差距全部来自组件识别，且门控 soft-kcal 已把不确定性摊进期望；2/3/4 组件盘相对误差中位数 9.8%/9.2%/6.4%，绝对 MAE 随盘总热量自然增大"本身是加分的工程判断。
+- 服务器上跑：`cd ~/eaglelab && python3 experiments/mixed_eval.py`（约 8 分钟，3090；k-shot 在 `config/config.yaml` 的 `mixed.support_k_shot` 配）。
 
 ### 7. 自采图像的量化评估（若完成 P0-1）
 
@@ -96,16 +105,16 @@
 |------|------|
 | 文献综述（6019 字 / 40 引 / 5 方向 / 顶会顶刊 9 篇） | ✅ `report/literature_review.md` |
 | 50 类数据集（1500/300/600 + 场景分层 + 合成真值） | ✅ `dataset_50cls/` |
-| 混合餐盘数据（120 盘）+ 检测 + 分层评估 + 对话用例 | ✅ `data/build_mixed_plates.py`、`models/mixed_detector.py`、`experiments/mixed_eval.py` |
+| 混合餐盘数据（120 盘 v3 随机化）+ 检测 + 分层评估 + 对话用例 | ✅ `data/build_mixed_plates.py`、`models/mixed_detector.py`、`experiments/mixed_eval.py` |
 | 四模块算法 + 3 创新点 + 3 组消融 | ✅ `models/`、`results/ablation_study.json` |
-| 全部硬指标（除混合盘 e2e）| ✅ 见各报告汇总表 |
+| 全部硬指标（除混合盘 e2e 107.8，oracle 74.0 达标）| ✅ 见各报告汇总表 |
 | 失败案例 18 例 | ✅ `report/failure_cases.md` |
-| 总结报告（8203 汉字，含表格代码） | ✅ `report/final_report.md` |
+| 总结报告（10407 汉字，含表格代码） | ✅ `report/final_report.md` |
 | requirements.txt 双环境版本固定 | ✅ 根目录 |
 | config.yaml 集中配置 | ✅ `config/config.yaml` |
 | README（含硬件说明、目录结构、单条命令运行） | ✅ `README.md` |
 | CLI Demo + Web Demo（Gradio 6，服务器 GPU 实测通过） | ✅ `demo/cli_demo.py`、`demo/web_demo.py` |
 | 对话用例 18 个 50 轮（含混合盘 3 例、门控闭环/半份纠正/数字窗口/长对话） | ✅ `demo/dialogue_cases.json`、`results/dialogue_test_results.json` |
-| 混合盘组件识别改进（few_shot + soft-kcal，e2e 120.9→110.9） | ✅ `config/config.yaml`（`mixed.recognizer_mode`）、`experiments/mixed_eval.py` |
+| 混合盘三轮迭代（v1 LoRA→v2 few_shot+soft-kcal 120.9→110.9→v3 随机化数据+20-shot+TTA+原型域增强+门控 top-2，e2e 107.8） | ✅ `data/build_mixed_plates.py`、`models/mixed_detector.py`、`experiments/mixed_eval.py`、`config/config.yaml`（`mixed.support_k_shot`） |
 | Agent 多轮能力改进（门控追问闭环/半份纠正/数字窗口/多槽共指） | ✅ `models/calorie_agent.py` |
 | Web Demo 美化+布局重构 v3（emerald 主题/紧凑 hero/统一输入区[图片\|文字+发送/新一餐]/HTML 状态卡片） | ✅ `demo/web_demo.py` |

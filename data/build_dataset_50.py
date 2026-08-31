@@ -1,26 +1,18 @@
 '''
-大作业·第二部分：构建 50 类中餐食物数据集
-================================================
-为什么需要这个脚本：
-  小作业的 dataset_20cls 只有 20 类，而大作业要求"食物识别覆盖 ≥ 50 类（中餐 ≥ 20）"。
-  ChineseFoodNet 共 208 类，我们从中选 50 类常见中餐，按 30(train)+6(val)+12(test)/类
-  划分，得到 train=1500 / val=300 / test=600，满足"训练≥1500、测试≥300"。
+构建 50 类中餐食物数据集脚本
+---
+从 ../ChineseFoodNet/release_data 选取 50 类（前 20 类与小作业一致），每类
+按 30(train)+6(val)+12(test) 划分，得到 train=1500 / val=300 / test=600
 
-设计要点：
-  - 输出目录 dataset_50cls/，与 dataset_20cls/ 并存，互不影响（小作业脚本仍可用 20 类）。
-  - 优先用 ChineseFoodNet 的 test/ 图片作为我们的测试集（这些图模型在预训练时没当训练集用过，
-    更贴近"真实未见过的图"），不足部分从 train/ 补。
-  - 文件夹结构沿用小作业约定：<split>/<idx>_<name>/<idx>_<原文件名>，保证 zero_shot.py 里
-    "int(i.split('_')[0])" 解析标签的逻辑依然成立。
-  - 同步生成 classes_50.csv（idx,zh,en,orig_id）和各 split 清单 csv。
-
+输出目录 dataset_50cls/，结构沿用小作业约定：<split>/<idx>_<name>/<idx>_<原文件名>
+优先用 CFN 的 test/ 图作我们的测试集（模型预训练时没当训练集用过，更贴近真实未见过的图）
 运行：在项目根目录 `python data/build_dataset_50.py`
 '''
 import os, random, shutil
 from collections import defaultdict
 import pandas as pd
 
-# 原始数据在"高扬"同学的目录下（与本项目同级）；脚本在 data/ 下，根目录再上一层
+# 原始数据在"高扬"目录下（与本项目同级）；脚本在 data/ 下，根目录再上一层
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.normpath(os.path.join(ROOT, "..", "高扬", "ChineseFood Net 3", "release_data"))
 OUT = os.path.join(ROOT, "dataset_50cls")
@@ -28,10 +20,10 @@ OUT = os.path.join(ROOT, "dataset_50cls")
 PER_CLASS_TRAIN, PER_CLASS_VAL, PER_CLASS_TEST = 30, 6, 12   # 30:6:12 ≈ 7:1.4:2.6
 SEED = 42
 
-# 50 类：前 20 类与小作业完全一致（便于复用其 LoRA adapter 做 20 类对照），
-# 后 30 类新增。元组 = (new_idx, 中文名, 英文名, ChineseFoodNet orig_id)
+# 50 类：前 20 类与小作业一致（便于复用其 LoRA adapter 做 20 类对照），后 30 类新增
+# 元组 = (new_idx, 中文名, 英文名, ChineseFoodNet orig_id)
 SEL = [
-    # ---- 前 20 类（同小作业）----
+    # 前 20 类（同小作业）
     (0,  "麻婆豆腐", "Mapo Tofu", 0),
     (1,  "宫保鸡丁", "Kung Pao Chicken", 71),
     (2,  "回锅肉",   "Double Cooked Pork", 84),
@@ -52,7 +44,7 @@ SEL = [
     (17, "炸酱面",   "Zhajiang Noodles", 149),
     (18, "葱爆羊肉", "Scallion Lamb", 104),
     (19, "香辣小龙虾","Spicy Crayfish", 118),
-    # ---- 新增 30 类 ----
+    # 新增 30 类
     (20, "家常豆腐", "Home style Tofu", 1),
     (21, "薯条",     "French Fries", 10),
     (22, "蚝油西兰花","Broccoli with Oyster Sauce", 26),
@@ -87,7 +79,7 @@ SEL = [
 
 
 def read_split(path, has_label=True):
-    """读 ChineseFoodNet 的 list 文件，每行 '相对路径 类别id'。"""
+    # 读 ChineseFoodNet 的 list 文件，每行 '相对路径 类别id'
     pairs = []
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
@@ -115,7 +107,7 @@ def main():
     for img, lab in train_pairs:
         by_class[lab].append(("train/" + img, "train"))
     for img, lab in val_pairs:
-        by_class[lab].append(("train/" + img, "train"))   # val_list 图也在 train/ 下
+        by_class[lab].append(("train/" + img, "train"))     # val_list 图也在 train/ 下
     for img, lab in test_truth:
         by_class[lab].append(("test/" + img, "test"))
 
@@ -130,8 +122,7 @@ def main():
 
     for new_idx, zh, en, orig_id in SEL:
         all_imgs = by_class[orig_id]
-        random.shuffle(all_imgs)
-        # 优先把 test/ 的图留给测试集
+        random.shuffle(all_imgs)     # 优先取test/里的图作为测试集，其余从train里抽
         test_pool  = [x for x in all_imgs if x[1] == "test"]
         train_pool = [x for x in all_imgs if x[1] == "train"]
 
@@ -179,7 +170,6 @@ def main():
     n_test  = sum(1 for r in records if r[0] == "test")
     print(f"\n完成。输出: {OUT}")
     print(f"总图: {len(records)}  | train {n_train} / val {n_val} / test {n_test}  | 类别 {len(SEL)}")
-
 
 if __name__ == "__main__":
     main()

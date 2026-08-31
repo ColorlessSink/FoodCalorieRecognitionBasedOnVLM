@@ -1,26 +1,20 @@
 '''
-models/nutrition_querier.py — 营养查询与卡路里计算模块（模块3）
-================================================
-为什么需要：
-  模块2 给出"食物类别 + 重量(g)"，模块3 负责：
-    ① 查营养库得每100g的 kcal/蛋白/脂肪/碳水；
-    ② 按估计重量换算成单份总热量与三大宏量；
-    ③ 输出结构化 JSON（喂给智能体模块做多轮对话解释）。
+营养查询与卡路里计算模块（模块3）
+---
+模块2 给出"食物类别 + 重量(g)"，模块3 负责：
+  1. 查营养库得每100g的 kcal/蛋白/脂肪/碳水
+  2. 按估计重量换算成单份总热量与三大宏量
+  3. 输出结构化 JSON（喂给智能体模块做多轮对话解释）
 
 设计：
-  - NutritionQuerier 一次读 nutrition_db.csv 缓存，按 idx 查。
-  - compute(food_idx, weight_g) 返回 {food_name, weight_g, kcal, protein_g, fat_g, carbs_g, per100}。
-  - 默认取 module2 的 PortionEstimator 结果作为 weight_g，也可外部传入（便于"识别+分量+营养"端到端）。
-  - 多食物：compute_meal(list_of_(idx,weight)) 汇总一餐。
+  - NutritionQuerier 一次读 nutrition_db.csv 缓存，按 idx 查
+  - compute(food_idx, weight_g) 返回 {food_name, weight_g, kcal, protein_g, fat_g, carbs_g, per100}
+  - 多食物：compute_meal(list_of_(idx,weight)) 汇总一餐
 '''
-import os
-import sys
-import json
+import os, sys, json
 import pandas as pd
 
-# 以 `python models/nutrition_querier.py` 方式启动时，Python 只把 models/ 加进
-# sys.path，找不到根目录的包。补进项目根目录（models 的上一级），使直接
-# 运行与 `python -m models.nutrition_querier` 都能工作。
+# `python models/nutrition_querier.py` 启动时 sys.path 只含 models/，补上项目根目录
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.common import ROOT, load_config
@@ -34,7 +28,7 @@ class NutritionQuerier:
         self._by_idx = {int(r["idx"]): r for _, r in self.db.iterrows()}
 
     def query(self, food_idx):
-        """返回该类每 100g 的营养字典；找不到返回 None。"""
+        # 返回该类每 100g 的营养字典；找不到返回 None
         r = self._by_idx.get(int(food_idx))
         if r is None:
             return None
@@ -49,7 +43,7 @@ class NutritionQuerier:
         }
 
     def compute(self, food_idx, weight_g):
-        """单食物：按重量换算总热量与宏量。"""
+        # 单食物：按重量换算总热量与宏量
         q = self.query(food_idx)
         if q is None:
             return {"food_idx": int(food_idx), "weight_g": float(weight_g),
@@ -70,7 +64,7 @@ class NutritionQuerier:
         }
 
     def compute_meal(self, items):
-        """一餐多食物汇总。items: [(food_idx, weight_g), ...]。返回每项 + 合计。"""
+        # 一餐多食物汇总。items: [(food_idx, weight_g), ...]，返回每项 + 合计
         per_food = []
         tot_kcal = tot_p = tot_f = tot_c = tot_w = 0.0
         for idx, w in items:
@@ -94,12 +88,11 @@ class NutritionQuerier:
 
 
 if __name__ == "__main__":
-    import sys
     sys.stdout.reconfigure(encoding="utf-8")
     nq = NutritionQuerier()
     # 自测：麻婆豆腐 220g
-    print("=== 单食物 麻婆豆腐 220g ===")
+    print("========== 1. 单食物 麻婆豆腐 220g ==========")
     print(nq.to_json(nq.compute(0, 220)))
     # 一餐
-    print("\n=== 一餐: 麻婆豆腐220g + 米饭150g ===")
+    print("\n========== 2. 一餐：麻婆豆腐220g + 米饭150g ==========")
     print(nq.to_json(nq.compute_meal([(0, 220), (16, 150)])))

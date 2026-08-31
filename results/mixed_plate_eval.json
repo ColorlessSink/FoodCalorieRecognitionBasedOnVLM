@@ -7,49 +7,66 @@
   "buckets": {
     "2comp_e2e": {
       "n_plates": 72,
-      "plate_kcal_mae": 112.0,
-      "plate_kcal_median_ae": 63.5,
-      "plate_weight_mae_g": 41.8,
-      "le100kcal_pct": 62.5,
-      "component_top1_pct": 74.3,
-      "component_top5_pct": 97.2
+      "plate_kcal_mae": 95.0,
+      "plate_kcal_median_ae": 71.8,
+      "plate_weight_mae_g": 43.4,
+      "le100kcal_pct": 59.7,
+      "component_top1_pct": 81.9,
+      "component_top5_pct": 97.9
     },
     "2comp_oracle": {
       "n_plates": 72,
-      "plate_kcal_mae": 56.3,
-      "plate_kcal_median_ae": 39.3,
-      "plate_weight_mae_g": 30.6,
-      "le100kcal_pct": 83.3,
+      "plate_kcal_mae": 69.6,
+      "plate_kcal_median_ae": 46.4,
+      "plate_weight_mae_g": 36.1,
+      "le100kcal_pct": 76.4,
       "component_top1_pct": 100.0
     },
     "3comp_e2e": {
-      "n_plates": 48,
-      "plate_kcal_mae": 109.2,
-      "plate_kcal_median_ae": 79.8,
-      "plate_weight_mae_g": 42.1,
-      "le100kcal_pct": 62.5,
-      "component_top1_pct": 81.9,
-      "component_top5_pct": 96.5
+      "n_plates": 36,
+      "plate_kcal_mae": 121.5,
+      "plate_kcal_median_ae": 88.6,
+      "plate_weight_mae_g": 61.6,
+      "le100kcal_pct": 52.8,
+      "component_top1_pct": 83.3,
+      "component_top5_pct": 95.4
     },
     "3comp_oracle": {
-      "n_plates": 48,
-      "plate_kcal_mae": 75.4,
-      "plate_kcal_median_ae": 60.6,
-      "plate_weight_mae_g": 36.8,
-      "le100kcal_pct": 68.8,
+      "n_plates": 36,
+      "plate_kcal_mae": 77.9,
+      "plate_kcal_median_ae": 55.9,
+      "plate_weight_mae_g": 42.5,
+      "le100kcal_pct": 72.2,
+      "component_top1_pct": 100.0
+    },
+    "4comp_e2e": {
+      "n_plates": 12,
+      "plate_kcal_mae": 144.0,
+      "plate_kcal_median_ae": 95.8,
+      "plate_weight_mae_g": 43.4,
+      "le100kcal_pct": 58.3,
+      "component_top1_pct": 89.6,
+      "component_top5_pct": 97.9
+    },
+    "4comp_oracle": {
+      "n_plates": 12,
+      "plate_kcal_mae": 88.3,
+      "plate_kcal_median_ae": 51.8,
+      "plate_weight_mae_g": 36.7,
+      "le100kcal_pct": 66.7,
       "component_top1_pct": 100.0
     }
   },
   "overall_oracle": {
     "n_plates": 120,
-    "plate_kcal_mae": 63.9,
-    "plate_kcal_median_ae": 44.8,
-    "le100kcal_pct": 77.5
+    "plate_kcal_mae": 74.0,
+    "plate_kcal_median_ae": 50.4,
+    "le100kcal_pct": 74.2
   },
   "overall_e2e": {
     "n_plates": 120,
-    "plate_kcal_mae": 110.9,
-    "plate_kcal_median_ae": 76.5,
-    "le100kcal_pct": 62.5
+    "plate_kcal_mae": 107.8,
+    "plate_kcal_median_ae": 79.2,
+    "le100kcal_pct": 57.5
   }
 }

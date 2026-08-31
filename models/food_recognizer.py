@@ -1,30 +1,23 @@
 '''
-models/food_recognizer.py — 食物识别模块（模块1）
-================================================
-为什么这样设计：
-  大作业模块1要求"基于 VLM 实现开放域食物识别，≥50 类，输出类别+置信度"。
-  我们复用小作业验证过的 Chinese-CLIP（CLS+projection 兼容写法），把它包装成一个
-  统一的 FoodRecognizer，内部支持三种后端：
-    mode="zero_shot" : 文本模板候选 → 余弦相似度（基线）
-    mode="few_shot"  : 每类 K 张支持集图特征求均作 prototype → 相似度
-    mode="lora"      : 加载 LoRA adapter 微调后的权重 → 相似度
-  对外只暴露 recognize(paths)->(labels, confs, topk)，下游分量/营养/智能体模块无需关心后端。
+食物识别模块（模块1）
+---
+基于 Chinese-CLIP 的食物识别，支持三种后端：
+  mode="zero_shot" : 文本模板候选 → 余弦相似度（基线）
+  mode="few_shot"  : 每类 K 张支持集图特征求均作 prototype → 相似度
+  mode="lora"      : 加载 LoRA adapter 微调后的权重 → 相似度
+对外只暴露 recognize(paths)->(labels, confs, topk)，下游分量/营养/智能体模块无需关心后端
 
-关键点（与 memory 一致）：
+关键点：
   get_text_features / get_image_features 在新版 transformers 里可能返回
   "非最终隐藏态"（只有 last_hidden_state）。必须手动取 [:,0,:] 再过
-  text_projection / visual_projection，才能得到 512 维对齐嵌入。
+  text_projection / visual_projection，才能得到 512 维对齐嵌入
 '''
-import os
-import sys
-import time
+import os, sys, time
 import torch
 from PIL import Image
 import pandas as pd
 
-# 以 `python models/food_recognizer.py` 方式启动时，Python 只把 models/ 加进
-# sys.path，找不到根目录的包。补进项目根目录（models 的上一级），使直接
-# 运行与 `python -m models.food_recognizer` 都能工作。
+# `python models/food_recognizer.py` 启动时 sys.path 只有 models/，补上项目根目录
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.common import load_config, load_clip, load_classes, device_of
@@ -32,10 +25,8 @@ from models.common import load_config, load_clip, load_classes, device_of
 
 class FoodRecognizer:
     def __init__(self, cfg=None, mode="zero_shot", data_dir=None, device=None):
-        """
-        mode  : "zero_shot" | "few_shot" | "lora"
-        data_dir : 数据集目录名（如 "dataset_50cls"）；None 时取 cfg.project.data_dir
-        """
+        # mode: "zero_shot" | "few_shot" | "lora"
+        # data_dir: 数据集目录名（如 "dataset_50cls"）；None 时取 cfg.project.data_dir
         self.cfg = cfg or load_config()
         self.mode = mode
         self.data_dir = data_dir or self.cfg["project"]["data_dir"]
@@ -62,6 +53,7 @@ class FoodRecognizer:
 
     # ---------------- LoRA ----------------
     def _load_lora_adapter(self):
+        # 注入 LoRA adapter 权重（需先经 experiments/train_lora_50.py 训练）
         import peft as pf
         adapter_dir = self.cfg["recognition"]["lora"]["adapter_dir_50"]
         adapter_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), adapter_dir) \
@@ -91,7 +83,7 @@ class FoodRecognizer:
 
     @torch.no_grad()
     def encode_images(self, images, batch_size=None):
-        """images: list[PIL.Image] 或 list[path]。返回 [N,512] 归一化特征。"""
+        # images: list[PIL.Image] 或 list[path]，返回 [N,512] 归一化特征
         batch_size = batch_size or self.cfg["model"]["batch_size"]
         # 路径 → PIL
         pil = []
@@ -123,14 +115,14 @@ class FoodRecognizer:
 
     # ---------------- 候选表示构建 ----------------
     def build_text_feats(self, template=None):
-        """zero_shot / lora 模式：用模板生成每类文本特征。"""
+        # zero_shot / lora 模式：用模板生成每类文本特征
         tpl = template or self.template
         texts = [tpl.format(c=n) for n in self.names_zh]
         self._text_feats = self.encode_texts(texts)
         return self._text_feats
 
     def build_prototypes(self, support_paths, support_labels, batch_size=None):
-        """few_shot 模式：支持集图特征按类求均作 prototype。"""
+        # few_shot 模式：支持集图特征按类求均作 prototype
         feats = self.encode_images(support_paths, batch_size)
         labels_t = torch.tensor(support_labels).to(self.device)
         protos = []
@@ -145,10 +137,8 @@ class FoodRecognizer:
     # ---------------- 推理 ----------------
     @torch.no_grad()
     def recognize(self, images, topk=5, batch_size=None):
-        """
-        输入：images (list[path|PIL.Image])
-        输出：(pred_idx[list], conf[list], topk_list[list[(idx,name,score)]])
-        """
+        # 输入 images (list[path|PIL.Image])
+        # 输出 (pred_idx[list], conf[list], topk_list[list[(idx,name,score)]])
         if self.mode == "few_shot":
             if self._prototypes is None:
                 raise RuntimeError("few_shot 模式需先 build_prototypes(support_paths, support_labels)")
@@ -175,7 +165,7 @@ class FoodRecognizer:
 
 # ---------------- 便捷函数：从 split.csv 收集图 + 标签 ----------------
 def gather_from_split(data_dir, split):
-    """读 dataset_50cls/<split>.csv，返回 (paths[abs], labels)。"""
+    # 读 dataset_50cls/<split>.csv，返回 (paths[abs], labels)
     from models.common import ROOT
     csv_path = os.path.join(ROOT, data_dir, f"{split}.csv")
     df = pd.read_csv(csv_path)
@@ -186,14 +176,13 @@ def gather_from_split(data_dir, split):
 
 # ---------------- 自测入口 ----------------
 if __name__ == "__main__":
-    import sys
     print(f"环境：device 检测中...")
     cfg = load_config()
     print(f"数据集: {cfg['project']['data_dir']}  类别数: {cfg['project']['n_classes']}")
 
     # 默认自测：zero_shot 在 test 上跑 Top-1/Top-5
     mode = sys.argv[1] if len(sys.argv) > 1 else "zero_shot"
-    print(f"\n[自测] mode={mode}")
+    print(f"\n自测 mode={mode}")
     rec = FoodRecognizer(mode=mode)
     paths, labels = gather_from_split(rec.data_dir, "test")
 

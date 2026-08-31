@@ -1,12 +1,10 @@
 '''
-experiments/train_lora_50.py — 50 类 LoRA 微调训练
-================================================
-为什么需要：
-  大作业要求"≥50 类食物识别，Top-1≥60%"，且少样本/微调改进实验需量化。
-  小作业只在 20 类上训了 LoRA adapter（92.5%/99.25%）。50 类类别更多、类间更细
-  （如鱼香肉丝 vs 回锅肉 vs 爆炒腰花 都是炒肉系），零样本 78.33% 已达标但有余量。
-  本脚本在 50 类训练集上用 InfoNCE 对比学习微调 LoRA，验证"少样本域适应"创新点
-  能否在 50 类上进一步提升，并产出 results/lora_adapter_50 供 ablation/识别模块复用。
+50 类 LoRA 微调训练
+---
+背景：小作业只在 20 类上训了 LoRA adapter（92.5%/99.25%）。50 类类别更多、类间更细
+（如鱼香肉丝 vs 回锅肉 vs 爆炒腰花 都是炒肉系），零样本 78.33% 已达标但有余量。
+本脚本在 50 类训练集上用 InfoNCE 对比学习微调 LoRA，验证"少样本域适应"创新点
+能否在 50 类上进一步提升，并产出 results/lora_adapter_50 供 ablation/识别模块复用
 
 设计（沿用小作业 lora_train.py 验证过的方法，仅把数据/类别口径切到 50 类）：
   - 冻结 Chinese-CLIP 全部参数，只在文本塔/视觉塔的 Q、V 注入 LoRA(r=8, α=16)
@@ -14,10 +12,7 @@ experiments/train_lora_50.py — 50 类 LoRA 微调训练
   - 每 epoch 评测 val，保留 val Top-1 最高的 adapter
   - CLS+projection 兼容：取 image_embeds/text_embeds（ChineseCLIPModel 直接给对齐嵌入）
 '''
-import os
-import sys
-import time
-import json
+import os, sys, time, json
 import torch
 from PIL import Image
 import pandas as pd
@@ -43,7 +38,7 @@ def collate_fn(batch, processor):
 
 
 class FoodDataset50(Dataset):
-    """从 dataset_50cls/train.csv 读 (path,label)，套模板成文本。"""
+    # 从 dataset_50cls/train.csv 读 (path,label)，套模板成文本
     def __init__(self, data_dir, split, template, transform=None):
         self.data_dir = data_dir
         names_zh, class_idx, _ = load_classes(data_dir)
@@ -70,7 +65,7 @@ class FoodDataset50(Dataset):
 
 @torch.no_grad()
 def evaluate(model, processor, data_dir, split, names_zh, template, device, batch_size=16):
-    """零开销评估：文本特征算一次，图特征批量算，余弦相似度取 argmax。"""
+    # 零开销评估：文本特征算一次，图特征批量算，余弦相似度取 argmax
     model.eval()
     texts = [template.format(c=n) for n in names_zh]
     t_in = processor(text=texts, padding=True, return_tensors="pt").to(device)
@@ -112,13 +107,13 @@ def train():
     device = device_of(cfg)
     if device == "cuda" and not torch.cuda.is_available():
         device = "cpu"
-    print(f"[配置] data_dir={data_dir} device={device} epoch={EPOCH} bs={BATCH_SIZE}")
+    print(f"配置 data_dir={data_dir} device={device} epoch={EPOCH} bs={BATCH_SIZE}")
 
     model, processor = load_clip(cfg)
     model = model.to(device)
 
     names_zh, class_idx, _ = load_classes(data_dir)
-    print(f"[类别] {len(names_zh)} 类")
+    print(f"共 {len(names_zh)} 类")
 
     dataset = FoodDataset50(data_dir, "train", TEMPLATE)
     dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, drop_last=True,
@@ -177,7 +172,7 @@ def train():
 
     dt = time.time() - t_start
     # 训完用最佳 adapter 在 test 上评一遍
-    print(f"\n[训练完成] 用时 {dt/60:.1f} min，最佳 val_top1={best_acc*100:.2f}%")
+    print(f"\n训练完成 用时 {dt/60:.1f} min，最佳 val_top1={best_acc*100:.2f}%")
     # 重新加载最佳 adapter 评 test
     del model
     torch.cuda.empty_cache()

@@ -12,25 +12,26 @@
 
 | 指标 | 硬指标 | 本作业 | 达标 |
 |------|--------|--------|------|
-| 识别 Top-1 | ≥60% | 78.33%(零样本) / 81.50%(LoRA) / 83.67%(少样本) | ✅ |
-| 识别 Top-5 | ≥85% | 97.00% / 98.17% / 98.00% | ✅ |
-| 识别类别数 | ≥50 | 50 | ✅ |
-| 分量 MAE | ≤30g 或 rel≤25% | 全量 24.4-25.3g / rel 16.7% | ✅ |
-| 卡路里 MAE（单） | ≤50kcal | 全量约 45kcal | ✅ |
-| 混合餐盘卡路里 MAE | ≤100kcal | oracle 63.9 / e2e 110.9（中位 76.5），组件识别 Top-1 78.1%（few_shot 模式，与 soft-kcal 概率加权联动使 e2e 120.9→110.9），检测区域数 119/120 | ⚠️ oracle 达标，e2e 见报告分层分析 |
-| 智能体用例 | ≥10 | 18 用例 50 轮（含 3 个混合餐盘用例） | ✅ |
-| 智能体准确率 | ≥80% | 100%（50/50） | ✅ |
-| 创新点 | ≥2 | 3 | ✅ |
-| 消融 | ≥2 | 3 | ✅ |
-| 失败案例 | ≥15 | 18 | ✅ |
-| 文献综述 | ≥3000字≥20引 | 6019字/40引（近3年50%+，顶会顶刊9篇） | ✅ |
-| 总结报告 | ≥8000字 | report/final_report.md（8203 汉字，含表格代码） | ✅ |
+| 识别 Top-1 | ≥60% | 78.33%(零样本) / 81.50%(LoRA) / 83.67%(少样本) | 达标 |
+| 识别 Top-5 | ≥85% | 97.00% / 98.17% / 98.00% | 达标 |
+| 识别类别数 | ≥50 | 50 | 达标 |
+| 分量 MAE | ≤30g 或 rel≤25% | 全量 24.0-27.2g（人工三场景口径）/ rel 16.7% | 达标 |
+| 卡路里 MAE（单） | ≤50kcal | 全量约 45kcal | 达标 |
+| 混合餐盘卡路里 MAE | ≤100kcal | oracle 63.9 / e2e 110.9（中位 76.5），组件识别 Top-1 78.1%（few_shot 模式，与 soft-kcal 概率加权联动使 e2e 120.9→110.9），检测区域数 119/120 | oracle 达标，e2e 见报告分层分析 |
+| 智能体用例 | ≥10 | 18 用例 50 轮（含 3 个混合餐盘用例） | 达标 |
+| 智能体准确率 | ≥80% | 100%（50/50） | 达标 |
+| 创新点 | ≥2 | 3 | 达标 |
+| 消融 | ≥2 | 3 | 达标 |
+| 失败案例 | ≥15 | 18 | 达标 |
+| 文献综述 | ≥3000字≥20引 | 6019字/40引（近3年50%+，顶会顶刊9篇） | 达标 |
+| 总结报告 | ≥8000字 | report/final_report.md（8203 汉字，含表格代码） | 达标 |
 
 ## 大作业环境
 
 代码在**两套环境**实测通过（`requirements.txt` 顶部注释给出两套环境的完整版本矩阵）：
 
 **环境 A（实验主环境）**：本地 Windows 11 + Python 3.13 + RTX 4050 Laptop 6GB
+
 - torch 2.13.0+cu130、transformers 5.14.1、peft 0.19.1、accelerate、datasets
 - opencv-python、scikit-learn、matplotlib、pandas、Pillow
 - requests、pyyaml（LLM 客户端与配置读取）、gradio 6.26（Web Demo）
@@ -42,11 +43,12 @@
 pip install -r requirements.txt
 ```
 
-Chinese-CLIP 模型 `OFA-Sys/chinese-clip-vit-base-patch16` 需提前下载到本地 HuggingFace 缓存，或修改各脚本中的 `_LOCAL_SNAP` 路径。
+Chinese-CLIP 模型 `OFA-Sys/chinese-clip-vit-base-patch16` 可提前下载到本地 HuggingFace 缓存，或修改各脚本中的 `_LOCAL_SNAP` 路径（或留空）。
 
-**LLM 配置**：智能体与 CoT 分量估计调用浙大 newapi 代理的 glm-5.2（纯文本，实测视觉不可用）。需配置环境变量：
-- `ANTHROPIC_BASE_URL=https://clusters.zju.edu.cn/newapi`
-- `ANTHROPIC_MODEL=glm-5.2`
+**LLM 配置**：项目本身开发时使用 GLM5.2，不使用 LLM 视觉能力。实际运行时需使用环境变量配置自己的 LLM 接口：
+
+- `ANTHROPIC_BASE_URL=`
+- `ANTHROPIC_MODEL=`
 - `ANTHROPIC_AUTH_TOKEN=<你的 token>`
 
 所有 LLM 调用带规则兜底（`fallback_to_rules: true`），断网/失败时退化为规则计算，流水线不依赖网络。
@@ -94,6 +96,7 @@ Chinese-CLIP 模型 `OFA-Sys/chinese-clip-vit-base-patch16` 需提前下载到�
 │   ├── failure_cases.md            失败案例（18 例）
 │   ├── final_report.md             总结报告（≥8000字）
 │   └── TODO_USER.md                用户待完成清单（P0/P1/P2，含答辩与补测指引）
+├── literature/                     文献综述参考文献 PDF（已下载部分，其余因出版方付费墙暂无法获取）
 ├── dataset_50cls/                  50 类数据集（train1500/val300/test600 + mixed/ 120 盘 + 真值 + 场景分层）
 └── results/                        实验产出（JSON + figures/）
 ```
@@ -142,7 +145,7 @@ python experiments/failure_analysis.py # 失败案例 → results/failure_cases_
 python experiments/visualization.py    # 图表 → results/figures/fig1-6.png
 ```
 
-#### 4. 智能体交互
+#### 4. 智能体交互（参照上方 LLM 配置使用环境变量设置 LLM 接口）
 
 ```bash
 # 单图识别
@@ -152,7 +155,7 @@ python demo/cli_demo.py --image dataset_50cls/test/00_麻婆豆腐/00_003720.jpg
 python demo/cli_demo.py --script demo/dialogue_cases.json --no-llm
 ```
 
-#### 5. Web Demo（Gradio）
+#### 5. Web Demo（Gradio）（参照上方 LLM 配置使用环境变量设置 LLM 接口）
 
 ```bash
 python demo/web_demo.py             # 浏览器打开 http://127.0.0.1:7860
@@ -165,7 +168,7 @@ python demo/web_demo.py --port 7863 # 指定端口（多用户共用机器时）
 ## 大作业关键说明
 
 - **合成真值诚实声明**：ChineseFoodNet 无分量/卡路里标注，真值按"文件名 md5 hash + 类先验高斯"采样，**与估计器输入（图像分割区域）完全解耦**，保证评估公平。详见 `report/process_log.md §0.4` 与 `report/final_report.md §3.4`。
-- **三层解耦架构**：代理 glm-5.2 视觉不可用（实测），故视觉理解由本地 Chinese-CLIP 承担，LLM 只做纯文本 CoT 与自然语言生成，关键逻辑规则兜底。详见 `report/process_log.md §0.3`。
+- **三层解耦架构**：开发时使用 glm-5.2 ，不使用大模型视觉能力，故视觉理解由本地 Chinese-CLIP 承担，LLM 只做纯文本 CoT 与自然语言生成，关键逻辑规则兜底。详见 `report/process_log.md §0.3`。
 - **分量估计 v2**：v1 绝对几何标定（MAE 143.1g，失败）→ v2 相对调制 + 类先验锚（全量 24-25g，达标）。根因是中餐图片无统一参考物、绝对标定被分辨率系统性污染。详见 `report/process_log.md §2.2`。
 
 ---

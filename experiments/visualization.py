@@ -1,10 +1,9 @@
 '''
-experiments/visualization.py — 生成实验图表
-================================================
-为什么需要：
-  大作业第四部分要求"提供可视化结果"。文字数字不直观，图表能一眼看出
-  各方法差距、误差分布、训练曲线。本脚本读 results/*.json 产出一组 PNG，
-  供报告/演示直接引用。中文字体用 SimHei（Windows 自带），缺则回退英文标注。
+生成实验图表
+---
+背景：文字数字不直观，图表能一眼看出各方法差距、误差分布、训练曲线。
+本脚本读 results/*.json 产出一组 PNG，供报告/演示直接引用。
+中文字体用 SimHei（Windows 自带），缺则回退英文标注
 
 产出（写入 results/figures/）：
   fig1_recognition_compare.png  : 识别方法 Top-1/Top-5 对比柱状图
@@ -14,9 +13,7 @@ experiments/visualization.py — 生成实验图表
   fig5_lora_train_curve.png     : 50类 LoRA 训练曲线（loss + val_top1）
   fig6_scene_eval.png           : 三场景识别/分量表现
 '''
-import os
-import sys
-import json
+import os, sys, json
 
 sys.stdout.reconfigure(encoding="utf-8")
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -29,7 +26,7 @@ import numpy as np
 
 
 def _setup_font():
-    """中文字体；缺字库则关 unicode_minus 避免负号方块。"""
+    # 中文字体；缺字库则关 unicode_minus 避免负号方块
     for f in ["SimHei", "Microsoft YaHei", "Arial Unicode MS"]:
         try:
             from matplotlib.font_manager import FontProperties
@@ -201,7 +198,7 @@ def fig6_scene():
 def main():
     os.makedirs(os.path.join(ROOT, "results", "figures"), exist_ok=True)
     f = _setup_font()
-    print(f"[字体] {f or '回退英文'}")
+    print(f"字体 {f or '回退英文'}")
     print("==== 生成图表 ====")
     fig1_recognition()
     fig2_portion()
@@ -209,7 +206,7 @@ def main():
     fig4_ablation_geoweight()
     fig5_lora_curve()
     fig6_scene()
-    print("\n[完成] results/figures/")
+    print("\n完成 results/figures/")
 
 
 if __name__ == "__main__":

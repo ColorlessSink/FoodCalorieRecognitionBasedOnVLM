@@ -1,39 +1,27 @@
 '''
-models/portion_estimator.py — 分量估计模块（模块2）
-================================================
-为什么需要、为什么这么设计：
-  大作业模块2要求"实现 ≥1 种分量估计方法（建议2种对比），单食物 MAE≤30g 或相对误差≤25%"。
-  我们实现两种方法并对比：
-    方法A（几何法） : 分割得面积比 → 按类桶的面积比中位数归一化 → 相对调制系数 → 乘类先验均值
-    方法B（CoT法） : 把识别结果+面积比+密度+先验喂给 glm-5.2，让它分步推理给重量（带不确定性）
-  两者都依赖"面积比"这一可解释中间量，便于消融对比（见 experiments/ablation_study.py）。
+分量估计模块（模块2）
+---
+两种方法对比，都依赖"面积比"这一可解释中间量，便于消融对比：
+  方法A（几何法） : 分割得面积比 → 按类桶的面积比中位数归一化 → 相对调制系数 → 乘类先验均值
+  方法B（CoT法） : 把识别结果+面积比+密度+先验喂给 glm-5.2，让它分步推理给重量（带不确定性）
 
-方法A 的标定演进（重要，见 process_log.md §3.2）：
+方法A 的标定演进（详见 process_log.md §3.2）：
   v1（失败）: 固定 plate_ref_px=900px=23cm → cm_per_px 与图像分辨率耦合，
-              1440px 大图食物面积爆高（回锅肉估到 1683g，MAE 143g）。
-              诊断证实：area_ratio 与短边 corr=0.007（已是好信号），
-              但 food_px=ar×总像素 与总像素 corr=0.895（绝对标定不可靠）。
+              1440px 大图食物面积爆高（回锅肉估到 1683g，MAE 143g）
   v2（当前）: 弃用绝对 cm 标定。area_ratio 作"相对调制器"，以类先验均值 μ 为锚：
-              weight = μ × clamp(ar / median_ar_bucket, [lo, hi])。
+              weight = μ × clamp(ar / median_ar_bucket, [lo, hi])
               ① 与图像分辨率解耦；② 以 μ 为锚避免 2D 面积法系统性高估；
-              ③ area_ratio 提供有据可依的相对涨落；④ 分割失败(ar→0)自然回退到 μ。
-              这样几何法的下界就是"完全不信面积、只用先验"，oracle MAE ≈ 0.8σ ≈ 24g。
+              ③ area_ratio 提供有据可依的相对涨落；④ 分割失败(ar→0)自然回退到 μ
 
-评估口径（重要，见 process_log.md §0.4）：
+评估口径（详见 process_log.md §0.4）：
   真值 = hash+类先验采样，与估计器输入（图像像素）解耦。
-  估计器最优输出 ≈ 类均值 μ，故 oracle MAE ≈ 0.8σ ≈ 24g < 30g。
-  方法A 被设计成回归到 μ（面积比只做相对调制），方法B 让 LLM 在几何与先验间折中。
+  估计器最优输出 ≈ 类均值 μ，故 oracle MAE ≈ 0.8σ ≈ 24g < 30g
 '''
-import os
-import sys
-import json
-import math
+import os, sys, json, math
 import numpy as np
 import pandas as pd
 
-# 以 `python models/portion_estimator.py` 方式启动时，Python 只把 models/ 加进
-# sys.path，找不到根目录的包。补进项目根目录（models 的上一级），使直接
-# 运行与 `python -m models.portion_estimator` 都能工作。
+# `python models/portion_estimator.py` 启动时 sys.path 只有 models/，补上项目根目录
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.common import ROOT, load_config
@@ -67,7 +55,7 @@ class PortionEstimator:
             self.llm = None
 
     def _load_ar_stats(self):
-        """读 area_ratio_stats.csv：bucket -> median_ar。没有则运行时惰性算。"""
+        # 读 area_ratio_stats.csv：bucket -> median_ar。没有则运行时惰性算
         path = os.path.join(ROOT, "data", "area_ratio_stats.csv")
         if not os.path.exists(path):
             return None
@@ -75,7 +63,7 @@ class PortionEstimator:
         return dict(zip(df["bucket"], df["median_ar"]))
 
     def _median_ar(self, idx, name):
-        """取该类所属桶的面积比中位数；缺标定表时用全局经验值 0.32。"""
+        # 取该类所属桶的面积比中位数；缺标定表时用全局经验值 0.32
         from data.build_labels import bucket_of
         b = bucket_of(idx, name)
         if self._ar_stats and b in self._ar_stats:
@@ -85,7 +73,7 @@ class PortionEstimator:
 
     # ---------- 中间量：分割 + 面积比 ----------
     def segment(self, img_path):
-        """返回 (mask, area_ratio, bbox)。img_path 可含中文。"""
+        # 返回 (mask, area_ratio, bbox)。img_path 可含中文
         img = imread_unicode(img_path)
         if img is None:
             return None, 0.0, None
@@ -96,13 +84,11 @@ class PortionEstimator:
 
     # ---------- 方法A：几何法（面积比相对调制 + 类先验锚）----------
     def estimate_geometric(self, img_path, food_idx, food_name):
-        """
-        weight = prior_μ × clamp(ar / median_ar_bucket, [lo, hi]) × geo_weight
-                 + prior_μ × (1 - geo_weight)
-        即以类先验均值 μ 为锚，面积比只在 [lo,hi] 区间内做相对调制。
-        面积比<ar_fail_thresh 视为分割失败，直接退先验。
-        仍输出几何中间量(area_ratio/food_area_cm2/density)供可解释与消融。
-        """
+        # weight = prior_μ × clamp(ar / median_ar_bucket, [lo, hi]) × geo_weight
+        #          + prior_μ × (1 - geo_weight)
+        # 即以类先验均值 μ 为锚，面积比只在 [lo,hi] 区间内做相对调制
+        # 面积比<ar_fail_thresh 视为分割失败，直接退先验
+        # 仍输出几何中间量(area_ratio/food_area_cm2/density)供可解释与消融
         prior = self._prior(food_idx, food_name)
         mask, ar, bbox = self.segment(img_path)
 
@@ -171,14 +157,14 @@ class PortionEstimator:
 
     # ---------- 内部 ----------
     def _prior(self, idx, name):
-        """类先验重量：与 build_labels.py 的 PORTION_PRIOR 同口径。"""
+        # 类先验重量：与 build_labels.py 的 PORTION_PRIOR 同口径
         from data.build_labels import PORTION_PRIOR, bucket_of
         mu, _ = PORTION_PRIOR[bucket_of(idx, name)]
         return mu
 
     @staticmethod
     def _parse_json(text):
-        """从 LLM 输出里抠出第一段 {...}。模型可能前后带解释。"""
+        # 从 LLM 输出里抠出第一段 {...}。模型可能前后带解释
         if not text:
             return None
         s = text.find("{")
@@ -192,7 +178,6 @@ class PortionEstimator:
 
 
 if __name__ == "__main__":
-    import sys
     sys.stdout.reconfigure(encoding="utf-8")
     from models.food_recognizer import gather_from_split
     pe = PortionEstimator(use_llm=False)
@@ -215,5 +200,6 @@ if __name__ == "__main__":
         print(f"{name_map[l]:<8} 几何={res['weight_g']:>6.1f}g 真={t:>6.1f}g 误差={e:>5.1f}g ({e/t*100:.0f}%)")
     errs = np.array(errs)
     rels = np.array(rels)
-    print(f"\n50 张 几何法 MAE = {errs.mean():.1f}g  中位误差 = {np.median(errs):.1f}g  相对误差 = {rels.mean()*100:.1f}%  满足≤30g占比={int((errs<=30).sum())}/50")
+    print(f"\n========== 50 张几何法自测结果 ==========")
+    print(f"MAE = {errs.mean():.1f}g  中位误差 = {np.median(errs):.1f}g  相对误差 = {rels.mean()*100:.1f}%  满足≤30g占比={int((errs<=30).sum())}/50")
 

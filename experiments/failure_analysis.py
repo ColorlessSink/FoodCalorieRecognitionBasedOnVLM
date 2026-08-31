@@ -1,10 +1,9 @@
 '''
-experiments/failure_analysis.py — 失败案例分析
-================================================
-为什么需要：
-  大作业第四部分要求"≥15 个失败案例分析"。失败案例比成功案例更有信息量——
-  它揭示模型的边界：哪些类易混、哪种拍摄条件下识别/分量会崩。本脚本自动从
-  test 结果里捞出失败样本并归类，再人工补充原因分析写入 report/failure_cases.md。
+失败案例分析
+---
+背景：失败案例比成功案例更有信息量——它揭示模型的边界：哪些类易混、
+哪种拍摄条件下识别/分量会崩。本脚本自动从 test 结果里捞出失败样本并归类，
+再人工补充原因分析写入 report/failure_cases.md
 
 产出：
   results/failure_cases_raw.json  : 自动捞取的失败样本（识别错 + 分量误差大）
@@ -15,9 +14,7 @@ experiments/failure_analysis.py — 失败案例分析
   - 分量大误差：|weight - true| > 60g（2× 硬指标，筛显著错）
   - 低置信：conf < 0.3（门控会触发反问的样本）
 '''
-import os
-import sys
-import json
+import os, sys, json
 import numpy as np
 import pandas as pd
 import torch
@@ -92,7 +89,7 @@ def main():
                 "modulator": g.get("modulator", 1.0),
             })
         if sampled % 50 == 0:
-            print(f"  [进度] 已处理 {sampled}/{len(portion_sample_idx)} 张")
+            print(f"  已处理 {sampled}/{len(portion_sample_idx)} 张")
     portion_fails.sort(key=lambda x: -x["err"])
     print(f"  抽样 {sampled} 张，分量误差>60g 共 {len(portion_fails)} 张")
     for f in portion_fails[:10]:
@@ -116,7 +113,7 @@ def main():
     out_path = os.path.join(ROOT, "results", "failure_cases_raw.json")
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
-    print(f"\n[完成] {out_path}")
+    print(f"\n完成 {out_path}")
 
 
 if __name__ == "__main__":
