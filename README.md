@@ -12,21 +12,25 @@
 
 | 指标 | 硬指标 | 本作业 | 达标 |
 |------|--------|--------|------|
-| 识别 Top-1 | ≥60% | 78.33%(零样本) / 81.50%(LoRA) / 83.67%(少样本) | 达标 |
-| 识别 Top-5 | ≥85% | 97.00% / 98.17% / 98.00% | 达标 |
+| 识别 Top-1 | ≥60% | 78.33%(零样本) / 81.50%(LoRA) / 83.67%(少样本)；跨模型 VLM 基线 Qwen2-VL-2B 生成式零样本 23.83%（见下） | 达标 |
+| 识别 Top-5 | ≥85% | 97.00% / 98.17% / 98.00%；Qwen2-VL-2B 29.67% | 达标 |
 | 识别类别数 | ≥50 | 50 | 达标 |
 | 分量 MAE | ≤30g 或 rel≤25% | 全量 24.0-27.2g（人工三场景口径）/ rel 16.7% | 达标 |
 | 卡路里 MAE（单） | ≤50kcal | 全量约 45kcal | 达标 |
-| 混合餐盘卡路里 MAE | ≤100kcal | oracle 63.9 / e2e 110.9（中位 76.5），组件识别 Top-1 78.1%（few_shot 模式，与 soft-kcal 概率加权联动使 e2e 120.9→110.9），检测区域数 119/120 | oracle 达标，e2e 见报告分层分析 |
+| 混合餐盘卡路里 MAE | ≤100kcal | oracle 74.0 / e2e 107.8（中位 79.2；v1 120.9→v2 110.9→v3 107.8，v3 为随机化数据口径），组件识别 few_shot 20-shot + TTA + 原型域增强 + 门控 soft-kcal Top-1 83.7%，检测召回 100%（区域数 119/120） | oracle 达标，e2e 见报告分层分析 |
 | 智能体用例 | ≥10 | 18 用例 50 轮（含 3 个混合餐盘用例） | 达标 |
 | 智能体准确率 | ≥80% | 100%（50/50） | 达标 |
 | 创新点 | ≥2 | 3 | 达标 |
 | 消融 | ≥2 | 3 | 达标 |
 | 失败案例 | ≥15 | 18 | 达标 |
 | 文献综述 | ≥3000字≥20引 | 6019字/40引（近3年50%+，顶会顶刊9篇） | 达标 |
-| 总结报告 | ≥8000字 | report/final_report.md（8203 汉字，含表格代码） | 达标 |
+| 总结报告 | ≥8000字 | report/final_report.md（12622 汉字） | 达标 |
 
-**外部网图域外检验**（`dataset_external/` 500 张真实网图 + 40 张真实混合菜，见 `results/external_eval.json`）：单食物零样本 Top-1 **89.80%**（内部 test 78.33%），分量 MAE 23.8g、卡路里 oracle 44.4 kcal，与内部同口径一致；真实混合菜暴露检测器域差（37/40 整图当一块），机器预标待人工复核。详见 `report/process_log.md §3.9` 与 `report/final_report.md §4.3.6`。
+**跨模型 VLM 基线（"≥2 种 VLM 基线"要求）**：服务器（RTX 3090 24GB，bf16）部署 `Qwen/Qwen2-VL-2B-Instruct`，在相同条件下做生成式零样本分类（`experiments/vlm_baseline_eval.py`）：Top-1 **23.83%** / Top-5 **29.67%**（耗时 3022.9s），对比 Chinese-CLIP 判别式零样本 78.33%/97.00%。说明50 类闭集中餐分类上，域内判别式 CLIP 显著优于 2B 通用生成式 VLM，反向支持本项目技术路线。
+
+**外部网图域外检验**（`dataset_external/` 500 张真实网图 + 40 张真实混合菜，见 `results/external_eval.json`）：单食物零样本 Top-1 **89.80%**（内部 test 78.33%），分量 MAE 23.8g、卡路里 oracle 44.4 kcal，与内部同口径一致；真实混合菜暴露纹理检测器域差（37/40 整图当一块），已换 **SAM ViT-B 后端**（`models/sam_detector.py`）重标：40 张里 37 张拆出 2~8 个组件（`dataset_external/mixed_labels.csv`，纹理后端备份于 `mixed_labels_texture.csv`）。详见 `report/process_log.md §3.9/§3.10` 与 `report/final_report.md §4.3.6`。
+
+**混合盘检测后端对比（SAM vs 纹理 CV，`results/sam_vs_texture.json` + `results/figures/fig7_sam_vs_texture.png`）**：120 合成盘 GT 同口径下，纹理后端区域数 119/120、召回 100%（合成域近满分），SAM 后端区域数 65/120、召回 87.0%、质心偏差 13.4px（聚合四步：面积/整图层过滤 + bbox 稠密度过滤 + IoA-NMS + 质心合并，参数在合成 GT 上扫参选定）。两后端定位互补：**纹理后端合成域强、真实照片塌成整块；SAM 后端合成域居中、但能拆真实照片**——真实部署应选 SAM。SAM 是"分割大模型"（本地零样本掩码提议）非视觉 LLM，与"不用 LLM 视觉能力"约束不冲突。
 
 ## 大作业环境
 
@@ -40,6 +44,7 @@
 
 **环境 B（复现环境）**：远程 Ubuntu 22.04 + Python 3.10 + RTX 3090 24GB
 - torch 2.5.1+cu121、transformers 4.46.3、peft 0.20.0（关键包版本不同，代码已做三路兼容）
+- 另部署 Qwen2-VL-2B-Instruct 作跨模型 VLM 基线（`~/vlm_baseline/`，模型经 `HF_ENDPOINT=https://hf-mirror.com` 离线下载，transformers 4.46.3 原生支持）
 
 ```bash
 pip install -r requirements.txt
@@ -76,7 +81,8 @@ Chinese-CLIP 模型 `OFA-Sys/chinese-clip-vit-base-patch16` 可提前下载到�
 │   ├── portion_estimator.py        模块2：分量估计（几何法 v2 相对调制 + CoT 法）
 │   ├── nutrition_querier.py        模块3：营养查询与卡路里计算
 │   ├── calorie_agent.py            模块4：智能体主控（门控/共指/个性化/混合盘）
-│   ├── mixed_detector.py           混合餐盘多食物区域检测（纹理线索 + 分水岭拆分）
+│   ├── mixed_detector.py           混合餐盘多食物区域检测（纹理线索 + 分水岭拆分；合成盘后端）
+│   ├── sam_detector.py             混合餐盘区域检测·SAM ViT-B 后端（真实照片可拆；同接口可替换）
 │   ├── llm_client.py               glm-5.2 客户端（OpenAI 兼容，规则兜底）
 │   └── common.py                   公共工具（ROOT/config/classes 加载）
 ├── experiments/
@@ -86,7 +92,8 @@ Chinese-CLIP 模型 `OFA-Sys/chinese-clip-vit-base-patch16` 可提前下载到�
 │   ├── failure_analysis.py         失败案例捞取
 │   ├── train_lora_50.py            50 类 LoRA 训练
 │   ├── external_eval.py            外部网图评估（识别/分量/卡路里/混合盘）
-│   └── visualization.py            可视化（fig1-6）
+│   ├── vlm_baseline_eval.py        跨模型 VLM 基线（Qwen2-VL-2B 生成式零样本，服务器运行）
+│   └── visualization.py            可视化（fig1-7）
 ├── demo/
 │   ├── cli_demo.py                 命令行交互 Demo
 │   ├── web_demo.py                 Gradio Web Demo（上传图片 + 对话 + 状态面板）
@@ -150,7 +157,8 @@ python experiments/baseline_eval.py    # 识别基线 → results/recognition_ba
 python experiments/mixed_eval.py       # 混合餐盘分层评估 → results/mixed_plate_eval.json
 python experiments/ablation_study.py   # 消融 A/B/C → results/ablation_study.json
 python experiments/failure_analysis.py # 失败案例 → results/failure_cases_raw.json
-python experiments/visualization.py    # 图表 → results/figures/fig1-6.png
+python experiments/visualization.py    # 图表 → results/figures/fig1-7.png
+python -c "from models.sam_detector import SamDetector"   # SAM 后端自检（可选）
 ```
 
 #### 3b. 外部网图评估（可选，域外泛化检验）
@@ -160,7 +168,17 @@ python data/build_external_labels.py  # 外部单食物合成真值 → dataset_
 python experiments/external_eval.py   # 识别（三模式）+ 分量/卡路里 + 真实混合盘统计 → results/external_eval.json
 ```
 
-`tools/scrape_images.py` 抓的 500 张单食物（50 类 × 10）+ 40 张真实混合菜存在 `dataset_external/`，与 `dataset_50cls/` 完全隔离、不破坏原流程。真实混合菜的机器预标（`dataset_external/mixed_labels.csv`）需人工复核（见 `report/TODO_USER.md` P1-12）。
+`tools/scrape_images.py` 抓的 500 张单食物（50 类 × 10）+ 40 张真实混合菜存在 `dataset_external/`，与 `dataset_50cls/` 完全隔离、不破坏原流程。
+
+#### 3c. 跨模型 VLM 基线（可选，"≥2 种 VLM 基线"要求；需 GPU 服务器）
+
+```bash
+# 服务器上：把 test.csv / classes_50.csv / test_imgs/ 与脚本放到同一目录（项目里为 ~/vlm_baseline/）
+# 模型经 HF_ENDPOINT=https://hf-mirror.com 下载 Qwen2-VL-2B-Instruct 后离线运行
+python3 vlm_baseline_eval.py    # → vlm_baseline_result.json（拷回本地并入 results/recognition_baseline.json）
+```
+
+在 RTX 3090 24GB（bf16）上 600 张约 50 分钟。与 Chinese-CLIP 判别式基线同数据集同标签口径（生成式 Top-5 为模型自报备选，语义与判别式略有差异，结果 JSON 中有声明）。
 
 #### 4. 智能体交互（参照上方 LLM 配置使用环境变量设置 LLM 接口）
 

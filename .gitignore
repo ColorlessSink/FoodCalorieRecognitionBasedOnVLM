@@ -1,8 +1,22 @@
 ChineseFood Net 3
 dataset_50cls/
 dataset_20cls/
-__pycache__
+
+__pycache__/
 *.pyc
+
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+
+results/_diag_*
+results/_sam_cache/
+results/_sam_debug/
+results/_mixed_crops2.pkl
+
+dataset_external/_review_sheet_*.jpg
+
 .claude
 TODO_USER.md
 process_log.md

@@ -35,5 +35,15 @@
     "top1": 81.5,
     "top5": 98.17,
     "mean_conf": 0.891
+  },
+  {
+    "method": "qwen2_vl_2b_zeroshot",
+    "model": "Qwen/Qwen2-VL-2B-Instruct",
+    "top1": 23.83,
+    "top5": 29.67,
+    "n": 600,
+    "seconds": 3022.9,
+    "hardware": "RTX 3090 24GB, bf16",
+    "note": "生成式分类（50 类候选约束 prompt + 输出归一），与 Chinese-CLIP 判别式同测试集同标签口径；Top-5 为模型自报备选前 4 + 答案，语义与判别式 top-5 略有差异"
   }
 ]

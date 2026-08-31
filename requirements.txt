@@ -25,6 +25,9 @@
 #   openpyxl==3.1.5
 #   requests==2.28.2
 #   pyyaml==6.0.3
+#   segment-anything==1.0   # SAM ViT-B 混合盘检测后端（models/sam_detector.py，
+#                           #   权重 models/sam_vit_b_01ec64.pth 375MB 不入库需另放；
+#                           #   不装则该后端不可用，其余流程与纹理后端不受影响）
 #
 # ── 环境 B：远程服务器 Ubuntu 22.04 + Python 3.10 + RTX 3090 24GB ──
 #   torch==2.5.1+cu121         # pip install torch --index-url https://download.pytorch.org/whl/cu121
@@ -44,6 +47,7 @@
 #   openpyxl==3.1.5
 #   requests==2.34.2
 #   pyyaml==5.4.1
+#   segment-anything==1.0   # 同上（SAM 后端可选；服务器未实测 SAM，复现时如需真实混合菜重标再装）
 #
 # 下面给出默认安装行（环境 A，本地）。若在服务器复现，请按上面环境 B 的
 # 版本调整 torch/transformers/peft/hub 四个关键包。
@@ -66,3 +70,4 @@ requests==2.28.2
 pyyaml==6.0.3
 gradio==6.26.0
 huggingface-hub>=1.5,<2.0
+segment-anything==1.0

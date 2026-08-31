@@ -1,0 +1,26 @@
+{
+  "note": "同口径：120 合成盘 GT；指标定义与 mixed_eval.py 一致。SAM 聚合四步：面积/整图层过滤 + bbox 稠密度过滤(fill) + IoA-NMS + 质心合并(beta*(r_i+r_j))；参数在合成 GT 上扫参选定(fill=0.65 ioa=0.55 beta=1.15)。",
+  "texture_backend": {
+    "backend": "texture(v3)",
+    "plates": 120,
+    "components": 300,
+    "region_count_exact": 119,
+    "region_count_exact_pct": 99.2,
+    "component_recall": 300,
+    "component_recall_pct": 100.0,
+    "extra_regions": 0,
+    "centroid_mae_px": 4.3
+  },
+  "sam_backend": {
+    "backend": "sam(vit_b)",
+    "plates": 120,
+    "components": 300,
+    "region_count_exact": 65,
+    "region_count_exact_pct": 54.2,
+    "component_recall": 261,
+    "component_recall_pct": 87.0,
+    "extra_regions": 48,
+    "centroid_mae_px": 13.4
+  },
+  "real_photo_note": "真实 40 张网图上纹理后端 37/40 整图当一块（域差）；SAM 后端重标结果见 dataset_external/mixed_labels.csv"
+}

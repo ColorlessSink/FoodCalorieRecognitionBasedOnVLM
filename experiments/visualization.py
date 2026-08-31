@@ -53,19 +53,28 @@ def fig1_recognition():
     if not data:
         print("  跳过 fig1：无 recognition_baseline.json")
         return
-    labels = [r.get("template") or r["method"] for r in data]
-    labels = [l if len(l) < 14 else l[:12] + ".." for l in labels]
+    def _label(r):
+        # VLM 生成式基线给个可读短标签，避免 method 名被截成 "qwen2_vl_2.."
+        m = str(r.get("method", ""))
+        if m.startswith("qwen2_vl"):
+            return "Qwen2-VL-2B\n生成式零样本"
+        return r.get("template") or m
+    labels = [_label(r) for r in data]
     top1 = [r["top1"] for r in data]
     top5 = [r["top5"] for r in data]
+    # VLM 基线条目（qwen2_vl_*）用不同颜色，直观区分判别式 CLIP 与生成式 VLM 两族方法
+    is_vlm = [str(r.get("method", "")).startswith("qwen2_vl") for r in data]
     x = np.arange(len(labels))
     w = 0.35
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.bar(x - w/2, top1, w, label="Top-1", color="#4C72B0")
-    ax.bar(x + w/2, top5, w, label="Top-5", color="#55A868")
+    fig, ax = plt.subplots(figsize=(11, 5))
+    c1 = ["#8B4C6B" if v else "#4C72B0" for v in is_vlm]   # VLM 用紫红区分
+    c2 = ["#C98BA6" if v else "#55A868" for v in is_vlm]
+    ax.bar(x - w/2, top1, w, label="Top-1", color=c1)
+    ax.bar(x + w/2, top5, w, label="Top-5", color=c2)
     ax.axhline(60, ls="--", c="red", lw=1, label="Top-1 阈值 60%")
     ax.axhline(85, ls=":", c="orange", lw=1, label="Top-5 阈值 85%")
     ax.set_xticks(x); ax.set_xticklabels(labels, rotation=15, ha="right")
-    ax.set_ylabel("准确率 %"); ax.set_title("食物识别各方法对比（50类 test=600）")
+    ax.set_ylabel("准确率 %"); ax.set_title("食物识别各方法对比（50类 test=600，紫红=生成式 VLM 基线）")
     ax.legend()
     for i, v in enumerate(top1):
         ax.text(i - w/2, v + 1, f"{v:.1f}", ha="center", fontsize=8)
@@ -195,6 +204,32 @@ def fig6_scene():
     print("  ✓ fig6_scene_eval.png")
 
 
+def fig7_sam_vs_texture():
+    # SAM vs 纹理两后端在合成盘 GT 上的同口径对比（真实 40 张的域差见报告文字）
+    data = _load("sam_vs_texture.json")
+    if not data:
+        print("  跳过 fig7：无 sam_vs_texture.json")
+        return
+    tex, sam = data["texture_backend"], data["sam_backend"]
+    metrics = [("区域数完全正确 (%)", "region_count_exact_pct"),
+               ("组件召回 (%)", "component_recall_pct")]
+    fig, axes = plt.subplots(1, 2, figsize=(9, 4.2))
+    for ax, (title, key) in zip(axes, metrics):
+        vals = [tex[key], sam[key]]
+        bars = ax.bar(["纹理 CV 后端", "SAM ViT-B 后端"], vals,
+                      color=["#4C72B0", "#C44E52"], width=0.55)
+        for b, v in zip(bars, vals):
+            ax.text(b.get_x() + b.get_width()/2, v + 1.5, f"{v:.1f}",
+                    ha="center", fontsize=10)
+        ax.set_ylim(0, 110)
+        ax.set_title(title)
+    fig.suptitle("混合盘区域检测后端对比（120 合成盘 GT，同口径）")
+    fig.tight_layout()
+    fig.savefig(os.path.join(ROOT, "results", "figures", "fig7_sam_vs_texture.png"), dpi=130)
+    plt.close(fig)
+    print("  ✓ fig7_sam_vs_texture.png")
+
+
 def main():
     os.makedirs(os.path.join(ROOT, "results", "figures"), exist_ok=True)
     f = _setup_font()
@@ -206,6 +241,7 @@ def main():
     fig4_ablation_geoweight()
     fig5_lora_curve()
     fig6_scene()
+    fig7_sam_vs_texture()
     print("\n完成 results/figures/")
 
 

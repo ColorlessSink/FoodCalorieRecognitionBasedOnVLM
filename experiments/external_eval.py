@@ -141,8 +141,11 @@ def summarize_mixed():
         "high_conf_ge0.8": int((conf >= 0.8).sum()),
         "low_conf_lt0.3": int((conf < 0.3).sum()),
         "top_predicted_dishes": {k: int(v) for k, v in top_zh.items()},
+        "detector": "SAM ViT-B（models/sam_detector.py，texture 后端结果备份于 "
+                    "mixed_labels_texture.csv：37/40 整图当一块）",
         "note": "真实混合菜无 GT（网图无分量/类别标注），机器预标仅作展示与人工复核起点，"
-                "不给虚张的 MAE。检测器在真实照片上 37/40 整图当一块（域差，见 process_log）。",
+                "不给虚张的 MAE。SAM 后端已能拆出多组件（见 region_count_dist），"
+                "合成盘同口径对比见 results/sam_vs_texture.json。",
     }
 
 
