@@ -1,0 +1,55 @@
+{
+  "recognition": {
+    "zero_shot": {
+      "top1_pct": 89.8,
+      "top5_pct": 99.4,
+      "mean_conf": 0.902
+    },
+    "few_shot": {
+      "top1_pct": 85.2,
+      "top5_pct": 97.8,
+      "mean_conf": 0.875
+    },
+    "lora": {
+      "top1_pct": 89.6,
+      "top5_pct": 97.8,
+      "mean_conf": 0.918
+    }
+  },
+  "portion_calorie": {
+    "n_sampled": 150,
+    "portion_mae_g": 23.8,
+    "portion_median_g": 19.2,
+    "portion_rel_pct": 12.2,
+    "calorie_oracle_mae_kcal": 44.4,
+    "calorie_e2e_mae_kcal": 53.9,
+    "calorie_e2e_median_kcal": 32.7
+  },
+  "mixed_plates": {
+    "n_plates": 40,
+    "n_component_rows": 43,
+    "region_count_dist": {
+      "1": 37,
+      "2": 3
+    },
+    "single_region_plates": 37,
+    "multi_region_plates": [
+      "mixed_raw/mixed_009.jpg",
+      "mixed_raw/mixed_012.jpg",
+      "mixed_raw/mixed_018.jpg"
+    ],
+    "high_conf_ge0.8": 11,
+    "low_conf_lt0.3": 8,
+    "top_predicted_dishes": {
+      "米饭": 11,
+      "红烧牛肉": 7,
+      "扬州炒饭": 3,
+      "炒菠菜": 3,
+      "麻辣虾": 3,
+      "糖醋鱼": 2,
+      "糖醋排骨": 2,
+      "葱爆羊肉": 2
+    },
+    "note": "真实混合菜无 GT（网图无分量/类别标注），机器预标仅作展示与人工复核起点，不给虚张的 MAE。检测器在真实照片上 37/40 整图当一块（域差，见 process_log）。"
+  }
+}

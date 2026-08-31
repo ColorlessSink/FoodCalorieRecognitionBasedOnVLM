@@ -4,7 +4,7 @@
 
 ## 大作业概述
 
-基于视觉-语言模型（Chinese-CLIP）构建一个食物卡路里识别智能体，完成"拍照 → 认菜 → 估分量 → 算热量 → 多轮对话"全流程。在"中餐数据集无分量标注 + 代理 LLM 视觉不可用"双重约束下，采用**本地视觉 + 远程纯文本 LLM + 规则兜底**的三层解耦架构。
+基于视觉-语言模型（Chinese-CLIP）构建一个食物卡路里识别智能体，完成"拍照 → 认菜 → 估分量 → 算热量 → 多轮对话"全流程。在"中餐数据集无分量标注 + 不使用视觉 LLM"双重约束下，采用**本地视觉 + 远程纯文本 LLM + 规则兜底**的三层解耦架构。
 
 四个模块：①食物识别（Chinese-CLIP 零样本/少样本/LoRA 三模式）②分量估计（GrabCut 分割 + 面积比相对调制 + 类先验锚）③营养查询与卡路里计算 ④多轮对话智能体（置信度门控追问闭环 / 共指一餐状态机 / 半份纠正 / 个性化目标适配）。
 
@@ -25,6 +25,8 @@
 | 失败案例 | ≥15 | 18 | 达标 |
 | 文献综述 | ≥3000字≥20引 | 6019字/40引（近3年50%+，顶会顶刊9篇） | 达标 |
 | 总结报告 | ≥8000字 | report/final_report.md（8203 汉字，含表格代码） | 达标 |
+
+**外部网图域外检验**（`dataset_external/` 500 张真实网图 + 40 张真实混合菜，见 `results/external_eval.json`）：单食物零样本 Top-1 **89.80%**（内部 test 78.33%），分量 MAE 23.8g、卡路里 oracle 44.4 kcal，与内部同口径一致；真实混合菜暴露检测器域差（37/40 整图当一块），机器预标待人工复核。详见 `report/process_log.md §3.9` 与 `report/final_report.md §4.3.6`。
 
 ## 大作业环境
 
@@ -67,6 +69,7 @@ Chinese-CLIP 模型 `OFA-Sys/chinese-clip-vit-base-patch16` 可提前下载到�
 │   ├── nutrition_db.csv            50 类营养库
 │   ├── area_ratio_stats.csv        分量标定表
 │   ├── build_mixed_plates.py       合成混合餐盘（→ dataset_50cls/mixed/）
+│   ├── build_external_labels.py    外部抓取单食物合成真值（→ dataset_external/single_labels_ext.csv）
 │   └── preprocess.py               一键串跑以上全部（含完整性校验）
 ├── models/
 │   ├── food_recognizer.py          模块1：食物识别（零样本/少样本/LoRA）
@@ -82,6 +85,7 @@ Chinese-CLIP 模型 `OFA-Sys/chinese-clip-vit-base-patch16` 可提前下载到�
 │   ├── ablation_study.py           消融 A/B/C
 │   ├── failure_analysis.py         失败案例捞取
 │   ├── train_lora_50.py            50 类 LoRA 训练
+│   ├── external_eval.py            外部网图评估（识别/分量/卡路里/混合盘）
 │   └── visualization.py            可视化（fig1-6）
 ├── demo/
 │   ├── cli_demo.py                 命令行交互 Demo
@@ -89,6 +93,9 @@ Chinese-CLIP 模型 `OFA-Sys/chinese-clip-vit-base-patch16` 可提前下载到�
 │   └── dialogue_cases.json         18 个对话测试用例（含 3 个混合餐盘）
 ├── tools/
 │   ├── label_scene.py              三场景人工标注工具（看图按键，修正自动划分）
+│   ├── scrape_images.py            网图抓取（百度/Bing，500 单食物 + 40 真实混合菜）
+│   ├── label_mixed.py              真实混合菜机器预标（检测 → 裁剪 → few-shot 预标 → 复核大图）
+│   ├── inspect_model.py            查看 Chinese-CLIP 结构、定位 LoRA Q/V 注入层
 │   └── utils.py                    通用工具
 ├── report/
 │   ├── literature_review.md        文献综述（6019字/40引）
@@ -98,6 +105,7 @@ Chinese-CLIP 模型 `OFA-Sys/chinese-clip-vit-base-patch16` 可提前下载到�
 │   └── TODO_USER.md                用户待完成清单（P0/P1/P2，含答辩与补测指引）
 ├── literature/                     文献综述参考文献 PDF（已下载部分，其余因出版方付费墙暂无法获取）
 ├── dataset_50cls/                  50 类数据集（train1500/val300/test600 + mixed/ 120 盘 + 真值 + 场景分层）
+├── dataset_external/               外部抓取数据（images/ 500 单食物 + mixed_raw/ 40 真实混合菜 + 真值 + 机器预标）
 └── results/                        实验产出（JSON + figures/）
 ```
 
@@ -145,6 +153,15 @@ python experiments/failure_analysis.py # 失败案例 → results/failure_cases_
 python experiments/visualization.py    # 图表 → results/figures/fig1-6.png
 ```
 
+#### 3b. 外部网图评估（可选，域外泛化检验）
+
+```bash
+python data/build_external_labels.py  # 外部单食物合成真值 → dataset_external/single_labels_ext.csv
+python experiments/external_eval.py   # 识别（三模式）+ 分量/卡路里 + 真实混合盘统计 → results/external_eval.json
+```
+
+`tools/scrape_images.py` 抓的 500 张单食物（50 类 × 10）+ 40 张真实混合菜存在 `dataset_external/`，与 `dataset_50cls/` 完全隔离、不破坏原流程。真实混合菜的机器预标（`dataset_external/mixed_labels.csv`）需人工复核（见 `report/TODO_USER.md` P1-12）。
+
 #### 4. 智能体交互（参照上方 LLM 配置使用环境变量设置 LLM 接口）
 
 ```bash
@@ -169,14 +186,14 @@ python demo/web_demo.py --port 7863 # 指定端口（多用户共用机器时）
 
 - **合成真值诚实声明**：ChineseFoodNet 无分量/卡路里标注，真值按"文件名 md5 hash + 类先验高斯"采样，**与估计器输入（图像分割区域）完全解耦**，保证评估公平。详见 `report/process_log.md §0.4` 与 `report/final_report.md §3.4`。
 - **三层解耦架构**：开发时使用 glm-5.2 ，不使用大模型视觉能力，故视觉理解由本地 Chinese-CLIP 承担，LLM 只做纯文本 CoT 与自然语言生成，关键逻辑规则兜底。详见 `report/process_log.md §0.3`。
-- **分量估计 v2**：v1 绝对几何标定（MAE 143.1g，失败）→ v2 相对调制 + 类先验锚（全量 24-25g，达标）。根因是中餐图片无统一参考物、绝对标定被分辨率系统性污染。详见 `report/process_log.md §2.2`。
+- **分量估计 v2**：v1 绝对几何标定（MAE 143.1g）失败，于是采用 v2 相对调制 + 类先验锚（全量 24-25g，达标）。根因是中餐图片无统一参考物、绝对标定被分辨率系统性污染。详见 `report/process_log.md §2.2`。
 
 ---
 
 ## 关键实现说明
 
 - **Chinese-CLIP 特征坑**：`get_text_features`/`get_image_features` 返回的不是最终对齐嵌入，要手动取 `last_hidden_state[:,0,:]`（CLS）再乘 `text_projection`/`visual_projection`，否则相似度全乱。
-- **LoRA 注入位置**：文本塔（`query`/`value`）和视觉塔（`q_proj`/`v_proj`）命名不一致，详见 `scripts/inspect_model.py`。
+- **LoRA 注入位置**：文本塔（`query`/`value`）和视觉塔（`q_proj`/`v_proj`）命名不一致，详见 `tools/inspect_model.py`。
 - **InfoNCE 损失**：CLIP 式双向交叉熵，对角线为正样本，batch 内其余为负样本。
 - **过拟合防止**：每 epoch 在 val 集评估，只保存 val 最优的 adapter。
 
